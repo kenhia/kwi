@@ -1,0 +1,41 @@
+[project]
+name = "kwi"
+version = "0.1.0"
+description = "Ken's Work Items - CLI for work item tracking"
+readme = "README.md"
+authors = [
+    { name = "Ken Hiatt", email = "ken.hiatt@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "typer>=0.15",
+    "psycopg[binary]>=3.2",
+    "rich>=13.0",
+    "python-frontmatter>=1.1",
+]
+
+[project.scripts]
+kwi = "kwi.main:app"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.7",
+]
