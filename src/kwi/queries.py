@@ -505,3 +505,47 @@ def list_related(conn: psycopg.Connection, workitem_id: int) -> list[dict]:
             }
         )
     return results
+
+
+def search_work_items(
+    conn: psycopg.Connection,
+    *,
+    project_id: int,
+    query: str,
+) -> list[WorkItem]:
+    """Search work items by keyword across title and content (ILIKE)."""
+    pattern = f"%{query}%"
+    cur = conn.execute(
+        "SELECT w.id, a.name, t.name, s.name, w.title, "
+        "w.wi_tshirt, w.sprint, w.content, w.details, "
+        "w.parent_id, w.created, w.updated, "
+        "w.project_id, w.area_id "
+        "FROM workitem w "
+        "JOIN workitem_type t ON w.wi_type_id = t.id "
+        "JOIN workitem_status s ON w.wi_status_id = s.id "
+        "LEFT JOIN area a ON w.area_id = a.id "
+        "WHERE w.project_id = %s "
+        "AND s.name != 'archived' "
+        "AND (w.title ILIKE %s OR w.content ILIKE %s) "
+        "ORDER BY w.id ASC",
+        (project_id, pattern, pattern),
+    )
+    return [
+        WorkItem(
+            id=r[0],
+            area_name=r[1],
+            wi_type=r[2],
+            wi_status=r[3],
+            title=r[4],
+            wi_tshirt=r[5],
+            sprint=r[6],
+            content=r[7],
+            details=r[8],
+            parent_id=r[9],
+            created=r[10],
+            updated=r[11],
+            project_id=r[12],
+            area_id=r[13],
+        )
+        for r in cur.fetchall()
+    ]

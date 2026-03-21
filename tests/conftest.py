@@ -1,13 +1,18 @@
 """Shared pytest fixtures for kwi tests."""
 
+import asyncio
+import json
 import os
+from contextlib import contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
 import psycopg
 import pytest
 from typer.testing import CliRunner
 
 from kwi.main import app
+from kwi.mcp.server import mcp as mcp_server_instance
 
 MIGRATION_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
@@ -123,3 +128,45 @@ def sample_area(db, sample_project):
         "name": row[2],
         "description": row[3],
     }
+
+
+# --- MCP fixtures ---
+
+
+@pytest.fixture
+def mcp_instance():
+    """Return the FastMCP server instance for direct testing."""
+    return mcp_server_instance
+
+
+@pytest.fixture
+def call_tool(mcp_instance, db):
+    """Return a helper that calls an MCP tool using the test DB connection.
+
+    Patches get_connection to reuse the test's rolled-back transaction
+    so MCP tool calls don't modify the real database.
+    """
+
+    @contextmanager
+    def _fake_connection(_url):
+        yield db
+
+    def _call(name: str, arguments: dict | None = None):
+        with patch("kwi.mcp.server.get_connection", _fake_connection):
+            raw = asyncio.run(mcp_instance.call_tool(name, arguments or {}))
+        # call_tool returns (list[TextContent], dict); extract text from first content
+        content_list = raw[0] if isinstance(raw, tuple) else raw
+        text = content_list[0].text
+        return json.loads(text)
+
+    return _call
+
+
+@pytest.fixture
+def list_tools(mcp_instance):
+    """Return a helper that lists all registered MCP tools."""
+
+    def _list():
+        return asyncio.run(mcp_instance.list_tools())
+
+    return _list

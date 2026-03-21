@@ -51,6 +51,41 @@ kwi --help
 kwi projects list
 ```
 
+## MCP Server
+
+kwi includes an MCP (Model Context Protocol) server that exposes
+work item management to AI agents.
+
+### Starting the MCP Server
+
+```bash
+kwi-mcp
+```
+
+The server runs over stdio transport. It is designed to be launched
+by an MCP client (such as VS Code, Claude Desktop, or similar).
+
+### VS Code Configuration
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "kwi": {
+        "type": "stdio",
+        "command": "uv",
+        "args": ["run", "--directory", "/path/to/kwi", "kwi-mcp"]
+      }
+    }
+  }
+}
+```
+
+The MCP server uses the same database configuration as the CLI
+(env var, config file, or default).
+
 ## Development
 
 ```bash

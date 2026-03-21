@@ -150,3 +150,117 @@ List all items related to a work item.
 ```bash
 kwi work related 1
 ```
+
+## MCP Server Tools
+
+The `kwi-mcp` server exposes 12 tools via the Model Context Protocol.
+All tools return JSON. Errors are returned as `{"error": "message"}`.
+
+### `list_projects`
+
+List all projects. No parameters.
+
+### `list_areas`
+
+List areas for a project.
+
+| Parameter | Type   | Required | Description                      |
+|-----------|--------|----------|----------------------------------|
+| project   | string | yes      | Project short name or numeric ID |
+
+### `list_work_items`
+
+List work items with optional filters. Archived excluded by default.
+
+| Parameter | Type   | Required | Description                       |
+|-----------|--------|----------|-----------------------------------|
+| project   | string | yes      | Project short name or numeric ID  |
+| area      | string | no       | Filter by area name               |
+| status    | string | no       | Filter by status (comma-separated)|
+| tshirt    | string | no       | Filter by t-shirt size            |
+
+### `get_work_item`
+
+Get full details of a single work item.
+
+| Parameter | Type    | Required | Description  |
+|-----------|---------|----------|--------------|
+| id        | integer | yes      | Work item ID |
+
+### `create_work_item`
+
+Create a new work item.
+
+| Parameter | Type    | Required | Default   | Description              |
+|-----------|---------|----------|-----------|--------------------------|
+| project   | string  | yes      |           | Project short name or ID |
+| title     | string  | yes      |           | Work item title          |
+| content   | string  | yes      |           | Markdown body            |
+| area      | string  | no       | null      | Area name                |
+| type      | string  | no       | task      | Work item type           |
+| status    | string  | no       | open      | Status                   |
+| tshirt    | string  | no       | Unknown   | T-shirt size             |
+| sprint    | string  | no       | null      | Sprint label             |
+| details   | string  | no       | null      | Additional markdown      |
+| parent    | integer | no       | null      | Parent work item ID      |
+
+### `update_work_item`
+
+Update one or more fields on an existing work item.
+
+| Parameter | Type    | Required | Description              |
+|-----------|---------|----------|--------------------------|
+| id        | integer | yes      | Work item ID             |
+| title     | string  | no       | New title                |
+| content   | string  | no       | New markdown body        |
+| details   | string  | no       | New additional markdown  |
+| type      | string  | no       | New work item type       |
+| status    | string  | no       | New status               |
+| tshirt    | string  | no       | New t-shirt size         |
+| sprint    | string  | no       | New sprint label         |
+| area      | string  | no       | New area name            |
+| parent    | integer | no       | New parent work item ID  |
+
+### `archive_work_item`
+
+Archive a work item (sets status to "archived").
+
+| Parameter | Type    | Required | Description  |
+|-----------|---------|----------|--------------|
+| id        | integer | yes      | Work item ID |
+
+### `relate_work_items`
+
+Create a relationship between two work items.
+
+| Parameter    | Type    | Required | Description                  |
+|--------------|---------|----------|------------------------------|
+| left_id      | integer | yes      | First work item ID           |
+| right_id     | integer | yes      | Second work item ID          |
+| relationship | string  | yes      | Relationship label           |
+
+### `unrelate_work_items`
+
+Remove a relationship between two work items.
+
+| Parameter | Type    | Required | Description        |
+|-----------|---------|----------|--------------------|
+| left_id   | integer | yes      | First work item ID |
+| right_id  | integer | yes      | Second work item ID|
+
+### `list_related`
+
+List all work items related to a given item.
+
+| Parameter | Type    | Required | Description  |
+|-----------|---------|----------|--------------|
+| id        | integer | yes      | Work item ID |
+
+### `search_work_items`
+
+Search work items by keyword across title and content.
+
+| Parameter | Type   | Required | Description                      |
+|-----------|--------|----------|----------------------------------|
+| project   | string | yes      | Project short name or numeric ID |
+| query     | string | yes      | Search term                      |

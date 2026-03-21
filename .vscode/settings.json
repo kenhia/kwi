@@ -12,6 +12,15 @@
     },
     "cSpell.words": [
         "workitem"
-    ]
+    ],
+    "mcp": {
+        "servers": {
+            "kwi": {
+                "type": "stdio",
+                "command": "uv",
+                "args": ["run", "--directory", "${workspaceFolder}", "kwi-mcp"]
+            }
+        }
+    }
 }
 
