@@ -264,11 +264,12 @@ def list_workitems(
 ) -> list[WorkItem]:
     """List work items for a project with optional filters."""
     query = (
-        "SELECT w.id, a.name, t.name, s.name, w.title, "
+        "SELECT w.id, p.project, a.name, t.name, s.name, w.title, "
         "w.wi_tshirt, w.sprint, w.content, w.details, "
         "w.parent_id, w.created, w.updated, "
         "w.project_id, w.area_id "
         "FROM workitem w "
+        "JOIN project p ON w.project_id = p.id "
         "JOIN workitem_type t ON w.wi_type_id = t.id "
         "JOIN workitem_status s ON w.wi_status_id = s.id "
         "LEFT JOIN area a ON w.area_id = a.id "
@@ -298,19 +299,20 @@ def list_workitems(
     return [
         WorkItem(
             id=r[0],
-            area_name=r[1],
-            wi_type=r[2],
-            wi_status=r[3],
-            title=r[4],
-            wi_tshirt=r[5],
-            sprint=r[6],
-            content=r[7],
-            details=r[8],
-            parent_id=r[9],
-            created=r[10],
-            updated=r[11],
-            project_id=r[12],
-            area_id=r[13],
+            project_name=r[1],
+            area_name=r[2],
+            wi_type=r[3],
+            wi_status=r[4],
+            title=r[5],
+            wi_tshirt=r[6],
+            sprint=r[7],
+            content=r[8],
+            details=r[9],
+            parent_id=r[10],
+            created=r[11],
+            updated=r[12],
+            project_id=r[13],
+            area_id=r[14],
         )
         for r in cur.fetchall()
     ]
@@ -516,11 +518,12 @@ def search_work_items(
     """Search work items by keyword across title and content (ILIKE)."""
     pattern = f"%{query}%"
     cur = conn.execute(
-        "SELECT w.id, a.name, t.name, s.name, w.title, "
+        "SELECT w.id, p.project, a.name, t.name, s.name, w.title, "
         "w.wi_tshirt, w.sprint, w.content, w.details, "
         "w.parent_id, w.created, w.updated, "
         "w.project_id, w.area_id "
         "FROM workitem w "
+        "JOIN project p ON w.project_id = p.id "
         "JOIN workitem_type t ON w.wi_type_id = t.id "
         "JOIN workitem_status s ON w.wi_status_id = s.id "
         "LEFT JOIN area a ON w.area_id = a.id "
@@ -533,19 +536,20 @@ def search_work_items(
     return [
         WorkItem(
             id=r[0],
-            area_name=r[1],
-            wi_type=r[2],
-            wi_status=r[3],
-            title=r[4],
-            wi_tshirt=r[5],
-            sprint=r[6],
-            content=r[7],
-            details=r[8],
-            parent_id=r[9],
-            created=r[10],
-            updated=r[11],
-            project_id=r[12],
-            area_id=r[13],
+            project_name=r[1],
+            area_name=r[2],
+            wi_type=r[3],
+            wi_status=r[4],
+            title=r[5],
+            wi_tshirt=r[6],
+            sprint=r[7],
+            content=r[8],
+            details=r[9],
+            parent_id=r[10],
+            created=r[11],
+            updated=r[12],
+            project_id=r[13],
+            area_id=r[14],
         )
         for r in cur.fetchall()
     ]

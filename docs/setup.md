@@ -43,6 +43,36 @@ Configure the database connection using one of (in precedence order):
 database_url = "postgresql://user:pass@host:5432/workitems"
 ```
 
+### Connection String Formats
+
+Both `kwi` (CLI) and `kwi-ui` (GUI) accept either format:
+
+- **URI**: `postgresql://user:pass@host:5432/workitems`
+- **Key=value**: `host=gratch port=5432 dbname=workitems user=ken`
+
+URI format is recommended for portability.
+
+### Separate Password (kwi-ui)
+
+To keep the password out of the connection string and environment
+variables, add `db_password` to `config.toml`:
+
+```toml
+database_url = "postgresql://ken@gratch:5432/workitems"
+db_password = "my_secret_password"
+```
+
+The password is appended to the connection automatically. If the
+connection string already contains a password, the `db_password`
+value takes precedence.
+
+### Config File Location
+
+All tools use `~/.config/kwi/config.toml`:
+
+- **Linux/macOS**: `$HOME/.config/kwi/config.toml`
+- **Windows**: `C:\Users\<username>\.config\kwi\config.toml`
+
 ## Verify Installation
 
 ```bash
@@ -86,16 +116,67 @@ Add to `.vscode/settings.json`:
 The MCP server uses the same database configuration as the CLI
 (env var, config file, or default).
 
+## Desktop GUI (kwi-ui)
+
+### Prerequisites
+
+- Rust 1.75+
+- Node.js 18+
+- System libraries (Linux): `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`,
+  `libayatana-appindicator3-dev`, `librsvg2-dev`
+
+### Setup
+
+```bash
+cd kwi-ui
+npm install
+```
+
+### Development
+
+```bash
+npm run tauri dev
+```
+
+### Build
+
+```bash
+# Linux
+npm run tauri build
+
+# Cross-compile for Windows (requires cross-compilation toolchain)
+npm run tauri build -- --target x86_64-pc-windows-gnu
+```
+
+### Configuration
+
+The GUI uses the same config file as the CLI:
+
+1. **Environment variable**: `KWI_DATABASE_URL`
+2. **Config file**: `~/.config/kwi/config.toml`
+
+The GUI does not support a `--db-url` CLI flag.
+
 ## Development
 
 ```bash
-# Run tests
+# Python tests
 uv run pytest -v
 
-# Lint and format
+# Python lint and format
 uv run ruff format .
 uv run ruff check .
 
-# Type check
+# Python type check
 ty check
+
+# Rust (kwi-ui backend)
+cd kwi-ui/src-tauri
+cargo fmt --check
+cargo clippy -- -D warnings
+cargo test
+
+# Svelte (kwi-ui frontend)
+cd kwi-ui
+npx svelte-check --threshold error
 ```

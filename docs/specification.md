@@ -3,7 +3,8 @@
 ## Overview
 
 kwi is a work item management system with a PostgreSQL backend,
-a CLI interface, and an MCP server for AI agent integration.
+a CLI interface, an MCP server for AI agent integration, and a
+desktop GUI for visual work item management.
 
 ## Features
 
@@ -23,6 +24,19 @@ and search work items programmatically.
 `get_work_item`, `create_work_item`, `update_work_item`,
 `archive_work_item`, `relate_work_items`, `unrelate_work_items`,
 `list_related`, `search_work_items`.
+
+### Desktop GUI (`kwi-ui`)
+
+Tauri 2 / Svelte 5 desktop application for visual work item
+management. Provides a two-panel layout with project sidebar
+and main content area.
+
+**Capabilities**: Browse projects and work items, create and
+edit work items with form validation, archive work items,
+manage relationships between items, full-text search, create
+projects and areas. Renders markdown content and details.
+
+**Platforms**: Linux (x86_64) and Windows (x86_64).
 
 ## Data Model
 

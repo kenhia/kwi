@@ -11,6 +11,16 @@ dist/
 *.egg-info/
 .eggs/
 
+# Rust / Tauri
+kwi-ui/src-tauri/target/
+*.rs.bk
+*.rlib
+
+# Node.js
+kwi-ui/node_modules/
+kwi-ui/.svelte-kit/
+kwi-ui/build/
+
 # Environment
 .env*
 !.env.example

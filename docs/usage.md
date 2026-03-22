@@ -1,4 +1,4 @@
-# kwi CLI Reference
+# kwi Usage Reference
 
 ## Global Options
 
@@ -264,3 +264,58 @@ Search work items by keyword across title and content.
 |-----------|--------|----------|----------------------------------|
 | project   | string | yes      | Project short name or numeric ID |
 | query     | string | yes      | Search term                      |
+
+## Desktop GUI (kwi-ui)
+
+Launch the GUI with `npm run tauri dev` (development) or run
+the built binary directly.
+
+### Browse
+
+1. Projects appear in the left sidebar, sorted alphabetically
+2. Click a project to see its work items in a table
+3. Use the filter dropdowns (area, type, status, size) above
+   the table to narrow results
+4. Toggle "Include archived" to show/hide archived items
+5. Click any row to open the detail view
+
+### Create Work Items
+
+1. With a project selected, click "+ New Work Item"
+2. Fill in title (required), content (required), and type (required)
+3. Optionally set status, t-shirt size, area, sprint, details, parent
+4. Click "Create" — the new item appears in the list
+
+### Edit Work Items
+
+1. Open a work item's detail view
+2. Click "Edit" to switch to form mode with pre-filled values
+3. Modify fields and click "Save Changes"
+4. Click "Cancel" to return to the detail view without saving
+
+### Archive
+
+1. Open a work item's detail view
+2. Click "Archive" and confirm the prompt
+3. The item is removed from the default list view
+4. Toggle "Include archived" in the list filters to see it
+
+### Search
+
+1. Use the search bar at the top of the main panel
+2. Type at least 2 characters to trigger search
+3. Results appear in a dropdown — click one to view its details
+4. Search is scoped to the currently selected project
+
+### Relationships
+
+1. Open a work item's detail view
+2. The "Relationships" section shows related items
+3. Click "+ Add" to relate another item by ID and label
+4. Click "×" to remove a relationship
+5. Click a related item to navigate to it
+
+### Manage Projects and Areas
+
+1. Click "+" in the sidebar header to add a new project
+2. Click the "◆" icon next to a project to add an area
