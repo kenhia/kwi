@@ -63,7 +63,9 @@
 
   function handleBlur() {
     // Delay to allow click on results
-    setTimeout(() => { showResults = false; }, 200);
+    setTimeout(() => {
+      showResults = false;
+    }, 200);
   }
 </script>
 
@@ -73,7 +75,9 @@
     bind:value={query}
     oninput={handleInput}
     onkeydown={handleKeydown}
-    onfocus={() => { if (hasSearched) showResults = true; }}
+    onfocus={() => {
+      if (hasSearched) showResults = true;
+    }}
     onblur={handleBlur}
     placeholder="Search work items…"
     aria-label="Search work items"
@@ -98,7 +102,9 @@
               >
                 <span class="result-id">#{item.id}</span>
                 <span class="result-title">{item.title}</span>
-                <span class="result-meta">{item.wi_type} · {item.wi_status}</span>
+                <span class="result-meta"
+                  >{item.wi_type} · {item.wi_status}</span
+                >
               </button>
             </li>
           {/each}

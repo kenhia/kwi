@@ -8,10 +8,29 @@
 
 ## Installation
 
+### Source (Development)
+
 ```bash
 # Clone and install
 git clone <repo-url> && cd kwi
 uv sync
+```
+
+### Local Install (uv tool)
+
+Installs `kwi` and `kwi-mcp` as isolated tools available on your `PATH`
+(`~/.local/bin/kwi` and `~/.local/bin/kwi-mcp` on Linux/macOS):
+
+```bash
+# Install from the project directory
+cd /path/to/kwi
+uv tool install .
+```
+
+To upgrade after pulling new changes:
+
+```bash
+uv tool install . --force
 ```
 
 ## Database Setup
@@ -97,7 +116,9 @@ by an MCP client (such as VS Code, Claude Desktop, or similar).
 
 ### VS Code Configuration
 
-Add to `.vscode/settings.json`:
+#### Source (Development)
+
+Use this when running from a cloned repository:
 
 ```json
 {
@@ -107,6 +128,24 @@ Add to `.vscode/settings.json`:
         "type": "stdio",
         "command": "uv",
         "args": ["run", "--directory", "/path/to/kwi", "kwi-mcp"]
+      }
+    }
+  }
+}
+```
+
+#### Installed (uv tool)
+
+Use this after installing with `uv tool install .`. Requires `~/.local/bin`
+to be on your `PATH`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "kwi": {
+        "type": "stdio",
+        "command": "kwi-mcp"
       }
     }
   }

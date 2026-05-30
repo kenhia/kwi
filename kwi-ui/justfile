@@ -1,0 +1,58 @@
+# kwi-ui development commands
+
+# Start Tauri dev server
+dev:
+    cargo tauri dev
+
+# Build Svelte frontend
+build:
+    npm run build
+
+# Run vitest component tests
+test:
+    npx vitest run
+
+# Run svelte-check type checking
+check:
+    npx svelte-check --tsconfig ./tsconfig.json
+
+# Format with prettier (Svelte plugin)
+fmt:
+    npx prettier --plugin prettier-plugin-svelte --write "src/**/*.{ts,svelte,js}" "*.{ts,js,json}"
+
+# Check formatting without writing
+fmt-check:
+    npx prettier --plugin prettier-plugin-svelte --check "src/**/*.{ts,svelte,js}" "*.{ts,js,json}"
+
+# Run eslint
+lint:
+    npx eslint .
+
+# Run cargo clippy on the Tauri backend
+clippy:
+    cd src-tauri && cargo clippy --all-targets --all-features
+
+# Run cargo fmt on the Tauri backend
+rustfmt:
+    cd src-tauri && cargo fmt
+
+# Check Rust formatting without writing
+rustfmt-check:
+    cd src-tauri && cargo fmt --check
+
+# Cross-compile a Windows release (.exe) using x86_64-pc-windows-gnu
+# Uses `cargo tauri build` to embed the frontend into the binary.
+# --no-bundle skips installer creation (NSIS/WiX not available on Linux).
+winrelease:
+    npx tauri build --target x86_64-pc-windows-gnu --no-bundle
+    @echo "Built: src-tauri/target/x86_64-pc-windows-gnu/release/kwi-ui.exe"
+
+# Run all pre-commit checks in sequence
+precommit: fmt-check lint check test rustfmt-check clippy
+
+# Format everything
+fmt-all: fmt rustfmt
+
+# Check all formatting without writing
+fmtcheck-all: fmt-check rustfmt-check
+

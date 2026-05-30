@@ -73,9 +73,12 @@
     tshirtSizes = ts;
     // Set defaults for create mode
     if (!isEdit) {
-      if (!wiType && types.length > 0) wiType = types[0];
-      if (!wiStatus && statuses.length > 0) wiStatus = statuses[0];
-      if (!wiTshirt && tshirtSizes.length > 0) wiTshirt = tshirtSizes[0];
+      if (!wiType && types.length > 0)
+        wiType = types.find((t) => t === "issue") ?? types[0];
+      if (!wiStatus && statuses.length > 0)
+        wiStatus = statuses.find((s) => s === "open") ?? statuses[0];
+      if (!wiTshirt && tshirtSizes.length > 0)
+        wiTshirt = tshirtSizes.find((s) => s === "S") ?? tshirtSizes[0];
     }
   }
 
@@ -135,10 +138,22 @@
   }
 </script>
 
-<form class="work-item-form" onsubmit={handleSubmit} aria-label="{isEdit ? 'Edit' : 'Create'} work item">
+<form
+  class="work-item-form"
+  onsubmit={handleSubmit}
+  aria-label="{isEdit ? 'Edit' : 'Create'} work item"
+>
   <header>
     <h2>{isEdit ? "Edit" : "New"} Work Item</h2>
-    <button type="button" class="cancel-btn" onclick={onCancel}>Cancel</button>
+    <div class="header-actions">
+      <button type="button" class="cancel-btn" onclick={onCancel}>Cancel</button
+      >
+      {#if isEdit}
+        <button type="submit" class="submit-btn" disabled={saving}>
+          {saving ? "Saving…" : "Save Changes"}
+        </button>
+      {/if}
+    </div>
   </header>
 
   {#if errorMsg}
@@ -152,26 +167,33 @@
 
   <div class="field">
     <label for="wi-title">Title <span class="required">*</span></label>
-    <input id="wi-title" type="text" bind:value={title} class:invalid={validationErrors.title} />
-    {#if validationErrors.title}<span class="field-error">{validationErrors.title}</span>{/if}
-  </div>
-
-  <div class="field">
-    <label for="wi-content">Content <span class="required">*</span></label>
-    <textarea id="wi-content" bind:value={content} rows="6" class:invalid={validationErrors.content}></textarea>
-    {#if validationErrors.content}<span class="field-error">{validationErrors.content}</span>{/if}
+    <input
+      id="wi-title"
+      type="text"
+      bind:value={title}
+      class:invalid={validationErrors.title}
+    />
+    {#if validationErrors.title}<span class="field-error"
+        >{validationErrors.title}</span
+      >{/if}
   </div>
 
   <div class="field-row">
     <div class="field">
       <label for="wi-type">Type <span class="required">*</span></label>
-      <select id="wi-type" bind:value={wiType} class:invalid={validationErrors.wiType}>
+      <select
+        id="wi-type"
+        bind:value={wiType}
+        class:invalid={validationErrors.wiType}
+      >
         <option value="">Select…</option>
         {#each types as t (t)}
           <option value={t}>{t}</option>
         {/each}
       </select>
-      {#if validationErrors.wiType}<span class="field-error">{validationErrors.wiType}</span>{/if}
+      {#if validationErrors.wiType}<span class="field-error"
+          >{validationErrors.wiType}</span
+        >{/if}
     </div>
 
     <div class="field">
@@ -206,18 +228,46 @@
 
     <div class="field">
       <label for="wi-sprint">Sprint</label>
-      <input id="wi-sprint" type="text" bind:value={sprint} placeholder="e.g. 2024-W03" />
+      <input
+        id="wi-sprint"
+        type="text"
+        bind:value={sprint}
+        placeholder="e.g. 2024-W03"
+      />
     </div>
 
     <div class="field">
       <label for="wi-parent">Parent ID</label>
-      <input id="wi-parent" type="number" bind:value={parentId} placeholder="Optional" />
+      <input
+        id="wi-parent"
+        type="number"
+        bind:value={parentId}
+        placeholder="Optional"
+      />
     </div>
   </div>
 
   <div class="field">
+    <label for="wi-content">Content <span class="required">*</span></label>
+    <textarea
+      id="wi-content"
+      bind:value={content}
+      rows="6"
+      class:invalid={validationErrors.content}
+    ></textarea>
+    {#if validationErrors.content}<span class="field-error"
+        >{validationErrors.content}</span
+      >{/if}
+  </div>
+
+  <div class="field">
     <label for="wi-details">Details</label>
-    <textarea id="wi-details" bind:value={details} rows="4" placeholder="Additional markdown details"></textarea>
+    <textarea
+      id="wi-details"
+      bind:value={details}
+      rows="4"
+      placeholder="Additional markdown details"
+    ></textarea>
   </div>
 
   <div class="form-actions">
@@ -239,6 +289,11 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+  }
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
   h2 {
     margin: 0;

@@ -1,6 +1,13 @@
 <script lang="ts">
   import type { WorkItem, Area } from "$lib/types";
-  import { listWorkItems, listAreas, getValidTypes, getValidStatuses, getValidTshirtSizes } from "$lib/commands";
+  import {
+    listWorkItems,
+    listAreas,
+    getValidTypes,
+    getValidStatuses,
+    getValidTshirtSizes,
+  } from "$lib/commands";
+  import MultiSelectFilter from "./MultiSelectFilter.svelte";
 
   let {
     projectId,
@@ -12,7 +19,7 @@
     onCreateItem: () => void;
   } = $props();
 
-  let items = $state<WorkItem[]>([]);
+  let allItems = $state<WorkItem[]>([]);
   let areas = $state<Area[]>([]);
   let types = $state<string[]>([]);
   let statuses = $state<string[]>([]);
@@ -20,12 +27,11 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  // Filters
-  let filterArea = $state<number | undefined>(undefined);
-  let filterType = $state<string | undefined>(undefined);
-  let filterStatus = $state<string | undefined>(undefined);
-  let filterTshirt = $state<string | undefined>(undefined);
-  let showArchived = $state(false);
+  // Multi-select filters
+  let selectedTypes = $state<Set<string>>(new Set());
+  let selectedStatuses = $state<Set<string>>(new Set());
+  let selectedSizes = $state<Set<string>>(new Set());
+  let selectedAreas = $state<Set<string>>(new Set());
 
   async function loadRefData() {
     const [a, t, s, ts] = await Promise.all([
@@ -38,13 +44,25 @@
     types = t;
     statuses = s;
     tshirtSizes = ts;
+
+    // Initialize filters to all selected, except archived status
+    selectedTypes = new Set(t);
+    selectedStatuses = new Set(s.filter((v) => v !== "archived"));
+    selectedSizes = new Set(ts);
+    selectedAreas = new Set(a.map((area) => area.name));
   }
 
   async function loadItems() {
     loading = true;
     error = null;
     try {
-      items = await listWorkItems(projectId, filterArea, filterType, filterStatus, showArchived);
+      allItems = await listWorkItems(
+        projectId,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
     } catch (e) {
       error = String(e);
     } finally {
@@ -52,86 +70,101 @@
     }
   }
 
-  // Filter by t-shirt on the client side since the backend doesn't support it directly
+  // Client-side filtering using all four multi-select dimensions
   let filteredItems = $derived(
-    filterTshirt ? items.filter((i) => i.wi_tshirt === filterTshirt) : items
+    allItems.filter(
+      (item) =>
+        selectedTypes.has(item.wi_type) &&
+        selectedStatuses.has(item.wi_status) &&
+        selectedSizes.has(item.wi_tshirt) &&
+        (item.area_name ? selectedAreas.has(item.area_name) : true),
+    ),
   );
 
   $effect(() => {
-    // Reload ref data when project changes
+    // Reload ref data and items when project changes
+    projectId;
     void loadRefData();
-  });
-
-  $effect(() => {
-    // Reload items when project or any filter changes
-    // Access reactive vars to track them
-    projectId; filterArea; filterType; filterStatus; showArchived;
     void loadItems();
   });
 
   function clearFilters() {
-    filterArea = undefined;
-    filterType = undefined;
-    filterStatus = undefined;
-    filterTshirt = undefined;
-    showArchived = false;
+    selectedTypes = new Set(types);
+    selectedStatuses = new Set(statuses.filter((v) => v !== "archived"));
+    selectedSizes = new Set(tshirtSizes);
+    selectedAreas = new Set(areas.map((area) => area.name));
   }
 
   let hasActiveFilters = $derived(
-    filterArea !== undefined ||
-    filterType !== undefined ||
-    filterStatus !== undefined ||
-    filterTshirt !== undefined ||
-    showArchived
+    selectedTypes.size !== types.length ||
+      selectedStatuses.size !==
+        statuses.filter((v) => v !== "archived").length ||
+      selectedSizes.size !== tshirtSizes.length ||
+      selectedAreas.size !== areas.length,
   );
 </script>
 
 <section class="work-item-list" aria-label="Work Items">
   <div class="toolbar">
     <div class="filters" role="group" aria-label="Filters">
-      <select
-        bind:value={filterArea}
-        aria-label="Filter by area"
-        onchange={() => { filterArea = filterArea === undefined ? undefined : Number(filterArea) || undefined; }}
-      >
-        <option value={undefined}>All areas</option>
-        {#each areas as area (area.id)}
-          <option value={area.id}>{area.name}</option>
-        {/each}
-      </select>
+      <MultiSelectFilter
+        label="areas"
+        options={areas.map((a) => a.name)}
+        selected={selectedAreas}
+        onchange={(v) => {
+          selectedAreas = v;
+        }}
+      />
 
-      <select bind:value={filterType} aria-label="Filter by type">
-        <option value={undefined}>All types</option>
-        {#each types as t (t)}
-          <option value={t}>{t}</option>
-        {/each}
-      </select>
+      <MultiSelectFilter
+        label="types"
+        options={types}
+        selected={selectedTypes}
+        onchange={(v) => {
+          selectedTypes = v;
+        }}
+      />
 
-      <select bind:value={filterStatus} aria-label="Filter by status">
-        <option value={undefined}>All statuses</option>
-        {#each statuses as s (s)}
-          <option value={s}>{s}</option>
-        {/each}
-      </select>
+      <MultiSelectFilter
+        label="statuses"
+        options={statuses}
+        selected={selectedStatuses}
+        onchange={(v) => {
+          selectedStatuses = v;
+        }}
+      />
 
-      <select bind:value={filterTshirt} aria-label="Filter by t-shirt size">
-        <option value={undefined}>All sizes</option>
-        {#each tshirtSizes as sz (sz)}
-          <option value={sz}>{sz}</option>
-        {/each}
-      </select>
-
-      <label class="archived-toggle">
-        <input type="checkbox" bind:checked={showArchived} />
-        Include archived
-      </label>
+      <MultiSelectFilter
+        label="sizes"
+        options={tshirtSizes}
+        selected={selectedSizes}
+        onchange={(v) => {
+          selectedSizes = v;
+        }}
+      />
 
       {#if hasActiveFilters}
-        <button type="button" class="clear-btn" onclick={clearFilters}>Clear filters</button>
+        <button type="button" class="clear-btn" onclick={clearFilters}
+          >Clear filters</button
+        >
       {/if}
     </div>
 
-    <button type="button" class="new-btn" onclick={onCreateItem}>+ New Work Item</button>
+    <div class="list-actions">
+      <button
+        type="button"
+        class="icon-btn"
+        onclick={() => {
+          loadItems();
+        }}
+        aria-label="Refresh work items"
+        title="Refresh work items"
+        class:spinning={loading}>↻</button
+      >
+      <button type="button" class="new-btn" onclick={onCreateItem}
+        >+ New Work Item</button
+      >
+    </div>
   </div>
 
   {#if loading}
@@ -161,12 +194,25 @@
               role="button"
               class:archived={item.wi_status === "archived"}
               onclick={() => onSelectItem(item)}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectItem(item); } }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectItem(item);
+                }
+              }}
             >
               <td class="col-id">{item.id}</td>
               <td>{item.area_name ?? "—"}</td>
-              <td><span class="badge type-{item.wi_type.toLowerCase()}">{item.wi_type}</span></td>
-              <td><span class="badge status-{item.wi_status.toLowerCase()}">{item.wi_status}</span></td>
+              <td
+                ><span class="badge type-{item.wi_type.toLowerCase()}"
+                  >{item.wi_type}</span
+                ></td
+              >
+              <td
+                ><span class="badge status-{item.wi_status.toLowerCase()}"
+                  >{item.wi_status}</span
+                ></td
+              >
               <td>{item.wi_tshirt}</td>
               <td>{item.sprint ?? "—"}</td>
               <td class="col-title">{item.title}</td>
@@ -201,21 +247,6 @@
     flex-wrap: wrap;
     align-items: center;
   }
-  select {
-    padding: 0.35rem 0.5rem;
-    border: 1px solid var(--border-color, #ccc);
-    border-radius: 4px;
-    font-size: 0.85rem;
-    background: var(--input-bg, #fff);
-    color: inherit;
-  }
-  .archived-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.85rem;
-    white-space: nowrap;
-  }
   .clear-btn {
     padding: 0.3rem 0.6rem;
     font-size: 0.8rem;
@@ -224,6 +255,39 @@
     background: none;
     cursor: pointer;
     color: inherit;
+  }
+  .list-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover {
+    background: var(--hover-bg, #e8e8e8);
+  }
+  .spinning {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
   .new-btn {
     padding: 0.4rem 1rem;
@@ -299,10 +363,6 @@
     color: var(--error-color, #c33);
   }
   @media (prefers-color-scheme: dark) {
-    select {
-      background: #2a2a2a;
-      border-color: #555;
-    }
     thead th {
       background: #2f2f2f;
       border-bottom-color: #555;
