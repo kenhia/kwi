@@ -52,6 +52,8 @@ kwi-ui/
 │       ├── stores.svelte.ts     # Reactive state ($state runes)
 │       └── components/
 │           ├── ProjectSelector.svelte
+│           ├── ProjectDetails.svelte
+│           ├── MultiSelectFilter.svelte
 │           ├── WorkItemList.svelte
 │           ├── WorkItemDetail.svelte
 │           ├── WorkItemForm.svelte
@@ -111,3 +113,12 @@ in `commands.ts`, which invoke Rust `#[tauri::command]` handlers
 via JSON-serialized IPC. The Rust handlers call query functions
 that mirror the Python `queries.py` patterns (same SQL, same
 column order) against the same PostgreSQL database.
+
+### Window State Persistence
+
+The `tauri-plugin-window-state` plugin automatically saves and
+restores the window size, position, and maximized state across
+application sessions. The plugin handles edge cases such as
+multi-monitor changes and off-screen positions. A minimum window
+size of 640×480 is enforced via `tauri.conf.json` to prevent
+unusable layouts.

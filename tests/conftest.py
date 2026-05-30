@@ -37,7 +37,7 @@ def _get_test_db_url() -> str:
     """Resolve the test database URL from env or default."""
     return os.environ.get(
         "KWI_TEST_DATABASE_URL",
-        "postgresql://ken:gUW%40Hfm5Cn%26%21IwEn@gratch:5432/workitems",
+        "postgresql://ken@gratch:5432/workitems_test",
     )
 
 

@@ -8,8 +8,8 @@ from kwi.main import app
 
 runner = CliRunner()
 
-# Use a known-good connection URL for tests
-DB_URL = "postgresql://ken:gUW%40Hfm5Cn%26%21IwEn@gratch:5432/workitems"
+# Use the test database — same URL as conftest.py
+DB_URL = "postgresql://ken@gratch:5432/workitems_test"
 
 
 def invoke(*args: str):

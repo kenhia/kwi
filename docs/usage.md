@@ -274,31 +274,37 @@ the built binary directly.
 
 1. Projects appear in the left sidebar, sorted alphabetically
 2. Click a project to see its work items in a table
-3. Use the filter dropdowns (area, type, status, size) above
-   the table to narrow results
-4. Toggle "Include archived" to show/hide archived items
-5. Click any row to open the detail view
+3. A collapsible "Project Details" section shows the project's short name,
+   CN path, GitHub repo (if set), and description (if set)
+4. Use the multi-select filter dropdowns (area, type, status, size) above
+   the table to narrow results — each filter opens a checkbox list
+   supporting multiple selections, with "Select All" and "Clear All" actions
+5. By default, all filter values are selected except the "archived" status
+6. Click any row to open the detail view
+7. Click the ↻ button next to "Projects" to refresh the project list
+8. Click the ↻ button next to "+ New Work Item" to refresh the work item list
 
 ### Create Work Items
 
 1. With a project selected, click "+ New Work Item"
-2. Fill in title (required), content (required), and type (required)
-3. Optionally set status, t-shirt size, area, sprint, details, parent
-4. Click "Create" — the new item appears in the list
+2. Fill in title (required) and type (required, defaults to "issue")
+3. Status defaults to "open", size defaults to "S"
+4. Optionally set area, sprint, parent, then fill in content (required) and details
+5. Click "Create" — the new item appears in the list
 
 ### Edit Work Items
 
 1. Open a work item's detail view
 2. Click "Edit" to switch to form mode with pre-filled values
-3. Modify fields and click "Save Changes"
+3. Modify fields and click "Save Changes" (available at both top and bottom of the form)
 4. Click "Cancel" to return to the detail view without saving
 
 ### Archive
 
 1. Open a work item's detail view
 2. Click "Archive" and confirm the prompt
-3. The item is removed from the default list view
-4. Toggle "Include archived" in the list filters to see it
+3. The item is hidden because "archived" is unchecked in the status filter by default
+4. To see archived items, open the status filter and check "archived"
 
 ### Search
 
@@ -319,3 +325,8 @@ the built binary directly.
 
 1. Click "+" in the sidebar header to add a new project
 2. Click the "◆" icon next to a project to add an area
+
+### Window Management
+
+The window size and position are persisted automatically across sessions.
+A minimum window size of 640×480 is enforced to prevent unusable layouts.

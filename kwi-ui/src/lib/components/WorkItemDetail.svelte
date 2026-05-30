@@ -30,9 +30,15 @@
   <header>
     <button type="button" class="back-btn" onclick={onBack}>← Back</button>
     <div class="actions">
-      <button type="button" class="edit-btn" onclick={() => onEdit(item)}>Edit</button>
+      <button type="button" class="edit-btn" onclick={() => onEdit(item)}
+        >Edit</button
+      >
       {#if item.wi_status !== "archived"}
-        <button type="button" class="archive-btn" onclick={() => onArchive(item)}>Archive</button>
+        <button
+          type="button"
+          class="archive-btn"
+          onclick={() => onArchive(item)}>Archive</button
+        >
       {/if}
     </div>
   </header>
@@ -87,6 +93,7 @@
   <section class="content-section">
     <h2>Content</h2>
     <div class="markdown-body">
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted local markdown rendered via marked.js in a single-user desktop app -->
       {@html renderedContent}
     </div>
   </section>
@@ -95,6 +102,7 @@
     <section class="content-section">
       <h2>Details</h2>
       <div class="markdown-body">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted local markdown rendered via marked.js in a single-user desktop app -->
         {@html renderedDetails}
       </div>
     </section>

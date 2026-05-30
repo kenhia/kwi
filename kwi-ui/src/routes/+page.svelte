@@ -3,6 +3,7 @@
   import { appState } from "$lib/stores.svelte";
   import { getWorkItem, archiveWorkItem, checkConnection } from "$lib/commands";
   import ProjectSelector from "$lib/components/ProjectSelector.svelte";
+  import ProjectDetails from "$lib/components/ProjectDetails.svelte";
   import WorkItemList from "$lib/components/WorkItemList.svelte";
   import WorkItemDetail from "$lib/components/WorkItemDetail.svelte";
   import WorkItemForm from "$lib/components/WorkItemForm.svelte";
@@ -25,7 +26,7 @@
     try {
       appState.selectedWorkItem = await getWorkItem(item.id);
       appState.view = "detail";
-    } catch (e) {
+    } catch {
       appState.selectedWorkItem = item;
       appState.view = "detail";
     }
@@ -87,17 +88,24 @@
           <li>
             <strong>Option 1 — Environment variable:</strong><br />
             Set <code>KWI_DATABASE_URL</code> before launching the app:<br />
-            <code>export KWI_DATABASE_URL="postgresql://user:pass@host:5432/workitems"</code>
+            <code
+              >export
+              KWI_DATABASE_URL="postgresql://user:pass@host:5432/workitems"</code
+            >
           </li>
           <li>
             <strong>Option 2 — Config file:</strong><br />
-            The config file path is shown in the error above. Create it with:<br />
+            The config file path is shown in the error above. Create it with:<br
+            />
             <pre>database_url = "postgresql://user:pass@host:5432/workitems"</pre>
             To keep the password out of the connection string, add:<br />
             <pre>db_password = "your_password"</pre>
           </li>
         </ol>
-        <p>Both <code>postgresql://</code> URI and <code>key=value</code> formats are accepted.</p>
+        <p>
+          Both <code>postgresql://</code> URI and <code>key=value</code> formats are
+          accepted.
+        </p>
       </section>
     </div>
   </main>
@@ -113,6 +121,7 @@
             onSelectResult={selectWorkItem}
           />
         </div>
+        <ProjectDetails project={appState.selectedProject} />
       {/if}
       {#if !appState.selectedProject}
         <div class="placeholder">
@@ -131,7 +140,9 @@
           projectName={appState.selectedProject.project}
           editItem={appState.selectedWorkItem}
           onSave={onFormSave}
-          onCancel={() => { appState.view = "detail"; }}
+          onCancel={() => {
+            appState.view = "detail";
+          }}
         />
       {:else if appState.view === "detail" && appState.selectedWorkItem}
         <WorkItemDetail
@@ -244,7 +255,8 @@
       background: #3a2020;
       border-color: #6a3030;
     }
-    .error-card code, .error-card pre {
+    .error-card code,
+    .error-card pre {
       background: #2a2a2a;
     }
     .top-bar {

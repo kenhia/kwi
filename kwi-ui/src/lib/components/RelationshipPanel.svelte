@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { RelatedItem } from "$lib/types";
-  import { listRelated, relateWorkItems, unrelateWorkItems } from "$lib/commands";
+  import {
+    listRelated,
+    relateWorkItems,
+    unrelateWorkItems,
+  } from "$lib/commands";
 
   let {
     workItemId,
@@ -70,7 +74,13 @@
 <section class="relationships" aria-label="Relationships">
   <div class="section-header">
     <h2>Relationships</h2>
-    <button type="button" class="add-btn" onclick={() => { showAddForm = !showAddForm; }}>
+    <button
+      type="button"
+      class="add-btn"
+      onclick={() => {
+        showAddForm = !showAddForm;
+      }}
+    >
       {showAddForm ? "Cancel" : "+ Add"}
     </button>
   </div>
@@ -113,7 +123,11 @@
     <ul class="related-list">
       {#each related as item (item.id + item.direction)}
         <li>
-          <button type="button" class="related-link" onclick={() => onNavigate(item.id)}>
+          <button
+            type="button"
+            class="related-link"
+            onclick={() => onNavigate(item.id)}
+          >
             <span class="rel-label">{item.relationship}</span>
             <span class="rel-title">#{item.id} {item.title}</span>
             <span class="rel-dir">({item.direction})</span>
@@ -123,8 +137,8 @@
             class="remove-btn"
             onclick={() => handleRemove(item)}
             title="Remove relationship"
-            aria-label="Remove relationship with {item.title}"
-          >×</button>
+            aria-label="Remove relationship with {item.title}">×</button
+          >
         </li>
       {/each}
     </ul>
@@ -272,7 +286,8 @@
     .add-form {
       background: #3a3a3a;
     }
-    .add-form input, .add-form select {
+    .add-form input,
+    .add-form select {
       background: #2a2a2a;
       border-color: #555;
     }

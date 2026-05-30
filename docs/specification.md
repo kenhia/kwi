@@ -35,6 +35,11 @@ and main content area.
 edit work items with form validation, archive work items,
 manage relationships between items, full-text search, create
 projects and areas. Renders markdown content and details.
+Multi-select checkbox filter dropdowns for type, status, size,
+and area. Collapsible project details pane. Refresh buttons
+for projects and work items. Sensible form defaults (issue/open/S).
+Save button at top and bottom of edit form. Window size and
+position persistence across sessions.
 
 **Platforms**: Linux (x86_64) and Windows (x86_64).
 

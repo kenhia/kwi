@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Project } from "$lib/types";
-  import { listProjects, createProject, createArea, listAreas } from "$lib/commands";
-  import type { Area } from "$lib/types";
+  import { listProjects, createProject, createArea } from "$lib/commands";
 
   let { onSelect }: { onSelect: (project: Project) => void } = $props();
 
@@ -102,7 +101,26 @@
 <nav class="sidebar" aria-label="Projects">
   <div class="sidebar-header">
     <h2>Projects</h2>
-    <button type="button" class="add-btn" onclick={() => { showAddProject = !showAddProject; }} title="Add project">+</button>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="icon-btn"
+        onclick={() => {
+          loadProjects();
+        }}
+        aria-label="Refresh projects"
+        title="Refresh projects"
+        class:spinning={loading}>↻</button
+      >
+      <button
+        type="button"
+        class="add-btn"
+        onclick={() => {
+          showAddProject = !showAddProject;
+        }}
+        title="Add project">+</button
+      >
+    </div>
   </div>
 
   {#if showAddProject}
@@ -110,13 +128,39 @@
       {#if addProjectError}
         <p class="form-error">{addProjectError}</p>
       {/if}
-      <input type="text" bind:value={newProjectName} placeholder="Short name *" required />
-      <input type="text" bind:value={newProjectCnPath} placeholder="CN path *" required />
-      <input type="text" bind:value={newProjectGhRepo} placeholder="GitHub repo (optional)" />
-      <input type="text" bind:value={newProjectDesc} placeholder="Description (optional)" />
+      <input
+        type="text"
+        bind:value={newProjectName}
+        placeholder="Short name *"
+        required
+      />
+      <input
+        type="text"
+        bind:value={newProjectCnPath}
+        placeholder="CN path *"
+        required
+      />
+      <input
+        type="text"
+        bind:value={newProjectGhRepo}
+        placeholder="GitHub repo (optional)"
+      />
+      <input
+        type="text"
+        bind:value={newProjectDesc}
+        placeholder="Description (optional)"
+      />
       <div class="form-actions">
-        <button type="button" class="cancel-btn" onclick={() => { showAddProject = false; }}>Cancel</button>
-        <button type="submit" class="submit-btn" disabled={addingProject}>{addingProject ? "…" : "Create"}</button>
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick={() => {
+            showAddProject = false;
+          }}>Cancel</button
+        >
+        <button type="submit" class="submit-btn" disabled={addingProject}
+          >{addingProject ? "…" : "Create"}</button
+        >
       </div>
     </form>
   {/if}
@@ -143,8 +187,8 @@
             type="button"
             class="area-btn"
             onclick={() => startAddArea(project)}
-            title="Add area to {project.project}"
-          >◆</button>
+            title="Add area to {project.project}">◆</button
+          >
         </li>
       {/each}
     </ul>
@@ -152,15 +196,34 @@
 
   {#if showAddArea && addAreaForProject}
     <form class="add-form area-form" onsubmit={handleAddArea}>
-      <p class="form-label">Add area to <strong>{addAreaForProject.project}</strong></p>
+      <p class="form-label">
+        Add area to <strong>{addAreaForProject.project}</strong>
+      </p>
       {#if addAreaError}
         <p class="form-error">{addAreaError}</p>
       {/if}
-      <input type="text" bind:value={newAreaName} placeholder="Area name *" required />
-      <input type="text" bind:value={newAreaDesc} placeholder="Description (optional)" />
+      <input
+        type="text"
+        bind:value={newAreaName}
+        placeholder="Area name *"
+        required
+      />
+      <input
+        type="text"
+        bind:value={newAreaDesc}
+        placeholder="Description (optional)"
+      />
       <div class="form-actions">
-        <button type="button" class="cancel-btn" onclick={() => { showAddArea = false; }}>Cancel</button>
-        <button type="submit" class="submit-btn" disabled={addingArea}>{addingArea ? "…" : "Create"}</button>
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick={() => {
+            showAddArea = false;
+          }}>Cancel</button
+        >
+        <button type="submit" class="submit-btn" disabled={addingArea}
+          >{addingArea ? "…" : "Create"}</button
+        >
       </div>
     </form>
   {/if}
@@ -181,6 +244,39 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.75rem;
+  }
+  .header-actions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn:hover {
+    background: var(--hover-bg, #e8e8e8);
+  }
+  .spinning {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
   h2 {
     margin: 0;
@@ -274,7 +370,8 @@
     gap: 0.3rem;
     justify-content: flex-end;
   }
-  .cancel-btn, .submit-btn {
+  .cancel-btn,
+  .submit-btn {
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.8rem;
@@ -303,7 +400,8 @@
     font-size: 0.8rem;
     margin: 0;
   }
-  .loading, .empty {
+  .loading,
+  .empty {
     color: var(--muted-color, #888);
     font-size: 0.9rem;
   }
@@ -315,7 +413,9 @@
     .sidebar {
       border-right-color: #444;
     }
-    .project-btn:hover, .add-btn:hover, .area-btn:hover {
+    .project-btn:hover,
+    .add-btn:hover,
+    .area-btn:hover {
       background: #3a3a3a;
     }
     .add-form {
