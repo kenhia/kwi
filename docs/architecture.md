@@ -37,7 +37,7 @@ src/kwi/
 │   └── work.py          # Work items subcommands
 └── mcp/
     ├── __init__.py      # MCP entry point (main → mcp.run())
-    └── server.py        # FastMCP instance + 12 tool definitions
+    └── server.py        # FastMCP instance + 15 tool definitions
 ```
 
 ### Desktop GUI (kwi-ui)

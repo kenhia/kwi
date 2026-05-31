@@ -171,6 +171,38 @@ class QueryError(Exception):
     """Raised when a query validation fails."""
 
 
+VALID_TSHIRTS = ("XS", "S", "M", "L", "XL", "Huge", "Unknown")
+
+
+def _would_create_cycle(
+    conn: psycopg.Connection, workitem_id: int, parent_id: int
+) -> bool:
+    """Return True if setting parent_id on workitem_id would create a cycle.
+
+    Walks the ancestor chain from the proposed parent upward; if workitem_id
+    appears, the link would create a cycle. Bounded to guard against any
+    pre-existing corrupt chain.
+    """
+    current: int | None = parent_id
+    seen: set[int] = set()
+    # Generous bound; chains are shallow in practice.
+    for _ in range(10_000):
+        if current is None:
+            return False
+        if current == workitem_id:
+            return True
+        if current in seen:
+            # Pre-existing cycle in stored data; stop walking.
+            return False
+        seen.add(current)
+        cur = conn.execute("SELECT parent_id FROM workitem WHERE id = %s", (current,))
+        row = cur.fetchone()
+        if row is None:
+            return False
+        current = row[0]
+    return False
+
+
 def insert_workitem(
     conn: psycopg.Connection,
     *,
@@ -261,13 +293,20 @@ def list_workitems(
     area_name: str | None = None,
     status_filter: list[str] | None = None,
     tshirt_filter: str | None = None,
+    include_archived: bool = False,
+    archived_only: bool = False,
 ) -> list[WorkItem]:
-    """List work items for a project with optional filters."""
+    """List work items for a project with optional filters.
+
+    By default, archived items are excluded. Set ``include_archived`` to
+    include them alongside active items, or ``archived_only`` to return only
+    archived items. ``archived_only`` takes precedence.
+    """
     query = (
         "SELECT w.id, p.project, a.name, t.name, s.name, w.title, "
         "w.wi_tshirt, w.sprint, w.content, w.details, "
         "w.parent_id, w.created, w.updated, "
-        "w.project_id, w.area_id "
+        "w.project_id, w.area_id, w.archived "
         "FROM workitem w "
         "JOIN project p ON w.project_id = p.id "
         "JOIN workitem_type t ON w.wi_type_id = t.id "
@@ -277,13 +316,16 @@ def list_workitems(
     )
     params: list = [project_id]
 
-    # Exclude archived by default
     if status_filter:
         placeholders = ", ".join(["%s"] * len(status_filter))
         query += f" AND s.name IN ({placeholders})"
         params.extend(status_filter)
-    else:
-        query += " AND s.name != 'archived'"
+
+    # Exclude archived items by default; optionally include or isolate them.
+    if archived_only:
+        query += " AND w.archived = true"
+    elif not include_archived:
+        query += " AND w.archived = false"
 
     if area_name:
         query += " AND a.name = %s"
@@ -313,6 +355,7 @@ def list_workitems(
             updated=r[12],
             project_id=r[13],
             area_id=r[14],
+            archived=r[15],
         )
         for r in cur.fetchall()
     ]
@@ -324,7 +367,7 @@ def get_workitem(conn: psycopg.Connection, workitem_id: int) -> WorkItem | None:
         "SELECT w.id, p.project, a.name, t.name, s.name, "
         "w.wi_tshirt, w.sprint, w.title, w.content, "
         "w.details, w.parent_id, w.created, w.updated, "
-        "w.project_id, w.area_id "
+        "w.project_id, w.area_id, w.archived "
         "FROM workitem w "
         "JOIN project p ON w.project_id = p.id "
         "JOIN workitem_type t ON w.wi_type_id = t.id "
@@ -352,6 +395,7 @@ def get_workitem(conn: psycopg.Connection, workitem_id: int) -> WorkItem | None:
         updated=r[12],
         project_id=r[13],
         area_id=r[14],
+        archived=r[15],
     )
 
 
@@ -408,6 +452,35 @@ def update_workitem(
             set_clauses.append(f"{col} = %s")
             params.append(value)
             updated_fields.append(field_name)
+        elif field_name == "wi_tshirt":
+            if str(value) not in VALID_TSHIRTS:
+                raise QueryError(
+                    f"Invalid t-shirt size '{value}'. "
+                    f"Valid sizes: {', '.join(VALID_TSHIRTS)}"
+                )
+            set_clauses.append("wi_tshirt = %s")
+            params.append(str(value))
+            updated_fields.append("tshirt")
+        elif field_name == "area":
+            area_id = _resolve_area_id(conn, existing.project_id, str(value))
+            if area_id is None:
+                raise QueryError(
+                    f"Area '{value}' not found in project '{existing.project_name}'."
+                )
+            set_clauses.append("area_id = %s")
+            params.append(area_id)
+            updated_fields.append("area")
+        elif field_name == "parent_id":
+            parent_id = int(value)
+            if parent_id == workitem_id:
+                raise QueryError("A work item cannot be its own parent.")
+            if get_workitem(conn, parent_id) is None:
+                raise QueryError(f"Parent work item {parent_id} not found.")
+            if _would_create_cycle(conn, workitem_id, parent_id):
+                raise QueryError(f"Setting parent {parent_id} would create a cycle.")
+            set_clauses.append("parent_id = %s")
+            params.append(parent_id)
+            updated_fields.append("parent")
 
     if not set_clauses:
         return []
@@ -421,16 +494,26 @@ def update_workitem(
 
 
 def archive_workitem(conn: psycopg.Connection, workitem_id: int) -> None:
-    """Set a work item's status to 'archived'."""
+    """Set a work item's archived flag (status is preserved)."""
     existing = get_workitem(conn, workitem_id)
     if existing is None:
         raise QueryError(f"Work item {workitem_id} not found.")
 
-    status_id = _resolve_status_id(conn, "archived")
-    assert status_id is not None
     conn.execute(
-        "UPDATE workitem SET wi_status_id = %s, updated = NOW() WHERE id = %s",
-        (status_id, workitem_id),
+        "UPDATE workitem SET archived = true, updated = NOW() WHERE id = %s",
+        (workitem_id,),
+    )
+
+
+def unarchive_workitem(conn: psycopg.Connection, workitem_id: int) -> None:
+    """Clear a work item's archived flag (status is preserved)."""
+    existing = get_workitem(conn, workitem_id)
+    if existing is None:
+        raise QueryError(f"Work item {workitem_id} not found.")
+
+    conn.execute(
+        "UPDATE workitem SET archived = false, updated = NOW() WHERE id = %s",
+        (workitem_id,),
     )
 
 

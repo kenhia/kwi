@@ -46,6 +46,45 @@ class TestListAreas:
         assert "error" in result
 
 
+class TestCreateProject:
+    """Tests for the create_project MCP tool."""
+
+    def test_create_succeeds(self, call_tool, db):
+        result = call_tool(
+            "create_project",
+            {"name": "mcpproj", "cn_path": "/tmp/mcpproj"},
+        )
+        assert "error" not in result
+        assert result["project"] == "mcpproj"
+        assert "id" in result
+
+    def test_duplicate_name_returns_error(self, call_tool, db):
+        call_tool("create_project", {"name": "dupproj", "cn_path": "/tmp/dp"})
+        result = call_tool("create_project", {"name": "dupproj", "cn_path": "/tmp/dp2"})
+        assert "error" in result
+
+
+class TestCreateArea:
+    """Tests for the create_area MCP tool."""
+
+    def test_create_succeeds(self, call_tool, db, sample_project):
+        result = call_tool(
+            "create_area",
+            {"project": "testproj", "name": "mcparea"},
+        )
+        assert "error" not in result
+        assert result["name"] == "mcparea"
+
+    def test_unknown_project_returns_error(self, call_tool, db):
+        result = call_tool("create_area", {"project": "nonexistent", "name": "x"})
+        assert "error" in result
+
+    def test_duplicate_area_returns_error(self, call_tool, db, sample_project):
+        call_tool("create_area", {"project": "testproj", "name": "dupar"})
+        result = call_tool("create_area", {"project": "testproj", "name": "dupar"})
+        assert "error" in result
+
+
 class TestListWorkItems:
     """Tests for the list_work_items MCP tool."""
 
@@ -254,6 +293,27 @@ class TestUpdateWorkItem:
         result = call_tool("update_work_item", {"id": wi.id, "status": "bad_status"})
         assert "error" in result
 
+    def test_update_persists_tshirt_area_parent(
+        self, call_tool, db, sample_project, sample_area
+    ):
+        """WI 41: tshirt, area, and parent were previously dropped."""
+        parent = self._make_item(db)
+        wi = self._make_item(db)
+        result = call_tool(
+            "update_work_item",
+            {
+                "id": wi.id,
+                "tshirt": "L",
+                "area": "testarea",
+                "parent": parent.id,
+            },
+        )
+        assert "error" not in result
+        fetched = call_tool("get_work_item", {"id": wi.id})
+        assert fetched["wi_tshirt"] == "L"
+        assert fetched["area_name"] == "testarea"
+        assert fetched["parent_id"] == parent.id
+
 
 class TestArchiveWorkItem:
     """Tests for the archive_work_item MCP tool."""
@@ -266,9 +326,12 @@ class TestArchiveWorkItem:
             project_name="testproj",
             title="To archive",
             content="body",
+            wi_status="active",
         )
         result = call_tool("archive_work_item", {"id": wi.id})
-        assert "archived" in str(result).lower() or "error" not in result
+        assert "error" not in result
+        assert result["archived"] is True
+        assert result["wi_status"] == "active"
 
     def test_archived_excluded_from_default_list(self, call_tool, db, sample_project):
         from kwi.queries import insert_workitem
@@ -284,24 +347,32 @@ class TestArchiveWorkItem:
         titles = [w["title"] for w in items]
         assert "Will be archived" not in titles
 
-    def test_archived_included_with_status_filter(self, call_tool, db, sample_project):
+    def test_archive_nonexistent(self, call_tool, db):
+        result = call_tool("archive_work_item", {"id": 999999})
+        assert "error" in result
+
+
+class TestUnarchiveWorkItem:
+    """Tests for the unarchive_work_item MCP tool."""
+
+    def test_unarchive_clears_flag(self, call_tool, db, sample_project):
         from kwi.queries import insert_workitem
 
         wi = insert_workitem(
             db,
             project_name="testproj",
-            title="Archived visible",
+            title="Restore me",
             content="body",
+            wi_status="active",
         )
         call_tool("archive_work_item", {"id": wi.id})
-        items = call_tool(
-            "list_work_items", {"project": "testproj", "status": "archived"}
-        )
-        titles = [w["title"] for w in items]
-        assert "Archived visible" in titles
+        result = call_tool("unarchive_work_item", {"id": wi.id})
+        assert "error" not in result
+        assert result["archived"] is False
+        assert result["wi_status"] == "active"
 
-    def test_archive_nonexistent(self, call_tool, db):
-        result = call_tool("archive_work_item", {"id": 999999})
+    def test_unarchive_nonexistent(self, call_tool, db):
+        result = call_tool("unarchive_work_item", {"id": 999999})
         assert "error" in result
 
 

@@ -41,14 +41,19 @@ uv tool install . --force
 CREATE DATABASE workitems;
 ```
 
-2. Apply the initial migration:
+2. Apply the migrations in order:
 
 ```bash
 psql -h gratch -U ken -d workitems -f migrations/001_initial_schema.sql
+psql -h gratch -U ken -d workitems -f migrations/002_archived_flag.sql
 ```
 
-This creates all tables and seeds the reference data (9 work item
-types, 6 statuses). The migration is idempotent — safe to re-run.
+Migration 001 creates all tables and seeds the reference data (9 work item
+types, 6 statuses). Migration 002 adds the `archived` boolean column to
+`workitem`, repoints any legacy `archived`-status rows to `closed` +
+`archived=true`, and removes the now-retired `archived` status (leaving 5
+statuses: open, active, resolved, closed, draft). Both migrations are
+forward-only and idempotent — safe to re-run.
 
 ## Configuration
 

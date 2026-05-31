@@ -31,6 +31,7 @@ const editItem = {
   wi_type: "bug",
   wi_status: "active",
   wi_tshirt: "L",
+  archived: false,
   sprint: "2026-W01",
   title: "Existing Bug",
   content: "Bug description",

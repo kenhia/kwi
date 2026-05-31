@@ -40,6 +40,7 @@ pub fn run() {
             commands::create_work_item,
             commands::update_work_item,
             commands::archive_work_item,
+            commands::unarchive_work_item,
             commands::search_work_items,
             commands::list_related,
             commands::relate_work_items,

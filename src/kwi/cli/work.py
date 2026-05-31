@@ -23,6 +23,7 @@ from kwi.queries import (
     insert_workitem,
     list_related,
     list_workitems,
+    unarchive_workitem,
     update_workitem,
 )
 
@@ -64,6 +65,9 @@ def list_work(
         None, "--status", help="Filter by status (comma-separated)."
     ),
     tshirt: str | None = typer.Option(None, "--tshirt", help="Filter by t-shirt size."),
+    archived: bool = typer.Option(
+        False, "--archived", help="Show only archived work items."
+    ),
 ) -> None:
     """List work items for a project."""
     db_url, use_json = _get_ctx(ctx)
@@ -79,6 +83,7 @@ def list_work(
             area_name=area,
             status_filter=status_list,
             tshirt_filter=tshirt,
+            archived_only=archived,
         )
     if use_json:
         render_json(
@@ -130,6 +135,7 @@ def show_work(
                 "type": w.wi_type,
                 "status": w.wi_status,
                 "tshirt": w.wi_tshirt,
+                "archived": w.archived,
                 "sprint": w.sprint,
                 "title": w.title,
                 "content": w.content,
@@ -148,6 +154,7 @@ def show_work(
                 ("Type", w.wi_type),
                 ("Status", w.wi_status),
                 ("T-Shirt", w.wi_tshirt),
+                ("Archived", w.archived),
                 ("Sprint", w.sprint),
                 ("Title", w.title),
                 ("Content", w.content),
@@ -240,6 +247,9 @@ def set_work(
     wi_type: str | None = typer.Option(None, "--type", help="New work item type."),
     status: str | None = typer.Option(None, "--status", help="New status."),
     sprint: str | None = typer.Option(None, "--sprint", help="New sprint label."),
+    tshirt: str | None = typer.Option(None, "--tshirt", help="New t-shirt size."),
+    area: str | None = typer.Option(None, "--area", help="New area name."),
+    parent: int | None = typer.Option(None, "--parent", help="New parent ID."),
     title: str | None = typer.Option(None, "--title", help="New title."),
     content: str | None = typer.Option(
         None, "--content", help="Path to file with new content."
@@ -251,13 +261,19 @@ def set_work(
     """Update fields on an existing work item."""
     db_url, use_json = _get_ctx(ctx)
 
-    fields: dict[str, str | None] = {}
+    fields: dict[str, str | int | None] = {}
     if wi_type is not None:
         fields["wi_type"] = wi_type
     if status is not None:
         fields["wi_status"] = status
     if sprint is not None:
         fields["sprint"] = sprint
+    if tshirt is not None:
+        fields["wi_tshirt"] = tshirt
+    if area is not None:
+        fields["area"] = area
+    if parent is not None:
+        fields["parent_id"] = parent
     if title is not None:
         fields["title"] = title
     if content is not None:
@@ -276,7 +292,8 @@ def set_work(
     if not fields:
         render_error(
             "No fields specified. Use --type, --status, "
-            "--sprint, --title, --content, or --details.",
+            "--sprint, --tshirt, --area, --parent, "
+            "--title, --content, or --details.",
             use_json=use_json,
         )
         raise typer.Exit(1)
@@ -311,6 +328,25 @@ def archive_work(
         render_json({"id": id, "status": "archived"})
     else:
         render_message(f"Archived work item {id}.")
+
+
+@app.command("unarchive")
+def unarchive_work(
+    ctx: typer.Context,
+    id: int = typer.Argument(..., help="Work item ID."),
+) -> None:
+    """Un-archive a work item."""
+    db_url, use_json = _get_ctx(ctx)
+    with get_connection(db_url) as conn:
+        try:
+            unarchive_workitem(conn, id)
+        except QueryError as e:
+            render_error(str(e), use_json=use_json)
+            raise typer.Exit(1) from e
+    if use_json:
+        render_json({"id": id, "archived": False})
+    else:
+        render_message(f"Un-archived work item {id}.")
 
 
 @app.command("relate")

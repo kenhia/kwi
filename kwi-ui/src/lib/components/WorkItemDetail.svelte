@@ -8,12 +8,14 @@
     onBack,
     onEdit,
     onArchive,
+    onUnarchive,
     onNavigateToItem,
   }: {
     item: WorkItem;
     onBack: () => void;
     onEdit: (item: WorkItem) => void;
     onArchive: (item: WorkItem) => void;
+    onUnarchive: (item: WorkItem) => void;
     onNavigateToItem?: (id: number) => void;
   } = $props();
 
@@ -33,7 +35,13 @@
       <button type="button" class="edit-btn" onclick={() => onEdit(item)}
         >Edit</button
       >
-      {#if item.wi_status !== "archived"}
+      {#if item.archived}
+        <button
+          type="button"
+          class="unarchive-btn"
+          onclick={() => onUnarchive(item)}>Un-archive</button
+        >
+      {:else}
         <button
           type="button"
           class="archive-btn"
@@ -43,7 +51,10 @@
     </div>
   </header>
 
-  <h1>{item.title}</h1>
+  <h1>
+    {item.title}{#if item.archived}<span class="archived-tag">Archived</span
+      >{/if}
+  </h1>
 
   <dl class="meta">
     <div class="meta-item">
@@ -156,6 +167,26 @@
     cursor: pointer;
     font-size: 0.9rem;
     color: var(--error-color, #c33);
+  }
+  .unarchive-btn {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: inherit;
+  }
+  .archived-tag {
+    margin-left: 0.6rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    background: var(--border-color, #ccc);
+    color: var(--text-color, #333);
+    font-size: 0.7rem;
+    font-weight: 600;
+    vertical-align: middle;
+    text-transform: uppercase;
   }
   h1 {
     font-size: 1.5rem;
