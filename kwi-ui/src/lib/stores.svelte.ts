@@ -19,3 +19,25 @@ export const appState = $state({
   /** Global loading flag */
   loading: false,
 });
+
+// Session-scoped filter selections for the work item list.
+// Lifted out of WorkItemList so they survive remounts (e.g. navigating to a
+// detail view and back). NOT persisted to localStorage — session-only.
+export const filterState = $state({
+  /** Project the type/status/size/area selections belong to */
+  projectId: null as number | null,
+  /** Project the sprint selection belongs to (sprints derive from items) */
+  sprintsProjectId: null as number | null,
+  /** When true, archived items are shown; defaults to hidden */
+  showArchived: false,
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- reassigned wholesale; reactivity tracked at the property level
+  types: new Set<string>(),
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- reassigned wholesale; reactivity tracked at the property level
+  statuses: new Set<string>(),
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- reassigned wholesale; reactivity tracked at the property level
+  sizes: new Set<string>(),
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- reassigned wholesale; reactivity tracked at the property level
+  areas: new Set<string>(),
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- reassigned wholesale; reactivity tracked at the property level
+  sprints: new Set<string>(),
+});

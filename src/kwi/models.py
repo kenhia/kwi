@@ -32,6 +32,7 @@ class WorkItem:
     wi_type: str
     wi_status: str
     wi_tshirt: str = "Unknown"
+    archived: bool = False
     area_id: int | None = None
     area_name: str | None = None
     project_name: str | None = None

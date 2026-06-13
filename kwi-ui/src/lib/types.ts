@@ -24,6 +24,7 @@ export interface WorkItem {
   wi_type: string;
   wi_status: string;
   wi_tshirt: string;
+  archived: boolean;
   sprint: string | null;
   title: string;
   content: string;

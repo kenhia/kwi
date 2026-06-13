@@ -10,6 +10,7 @@ from kwi.queries import (
     insert_project,
     insert_workitem,
     list_workitems,
+    unarchive_workitem,
     update_workitem,
 )
 
@@ -107,13 +108,13 @@ class TestListWorkitems:
             title="Active",
             content="c",
         )
-        insert_workitem(
+        archived = insert_workitem(
             db,
             project_name="archlist",
             title="Archived",
             content="c",
-            wi_status="archived",
         )
+        archive_workitem(db, archived.id)
         items = list_workitems(db, project_id=p.id)
         titles = [w.title for w in items]
         assert "Active" in titles
@@ -143,21 +144,46 @@ class TestListWorkitems:
         assert len(items) == 1
         assert items[0].title == "Active"
 
-    def test_list_with_archived_status(self, db):
+    def test_list_with_archived_included(self, db):
         p = insert_project(db, name="archfilt", cn_path="/tmp/af")
-        insert_workitem(
+        archived = insert_workitem(
             db,
             project_name="archfilt",
             title="Archived",
             content="c",
-            wi_status="archived",
         )
+        archive_workitem(db, archived.id)
         items = list_workitems(
             db,
             project_id=p.id,
-            status_filter=["archived"],
+            include_archived=True,
         )
         assert len(items) == 1
+        assert items[0].archived is True
+
+    def test_list_archived_only(self, db):
+        p = insert_project(db, name="archonly", cn_path="/tmp/ao")
+        insert_workitem(
+            db,
+            project_name="archonly",
+            title="Active",
+            content="c",
+        )
+        archived = insert_workitem(
+            db,
+            project_name="archonly",
+            title="Archived",
+            content="c",
+        )
+        archive_workitem(db, archived.id)
+        items = list_workitems(
+            db,
+            project_id=p.id,
+            archived_only=True,
+        )
+        titles = [w.title for w in items]
+        assert titles == ["Archived"]
+        assert items[0].archived is True
 
 
 class TestGetWorkitem:
@@ -210,19 +236,150 @@ class TestUpdateWorkitem:
 
 
 class TestArchiveWorkitem:
-    def test_archive(self, db):
+    def test_archive_sets_flag_preserves_status(self, db):
         insert_project(db, name="archtest", cn_path="/tmp/at")
         w = insert_workitem(
             db,
             project_name="archtest",
             title="Archive me",
             content="c",
+            wi_status="active",
         )
         archive_workitem(db, w.id)
         found = get_workitem(db, w.id)
         assert found is not None
-        assert found.wi_status == "archived"
+        assert found.archived is True
+        assert found.wi_status == "active"
+
+    def test_archive_twice_is_noop(self, db):
+        insert_project(db, name="archtwice", cn_path="/tmp/atw")
+        w = insert_workitem(
+            db,
+            project_name="archtwice",
+            title="Archive me twice",
+            content="c",
+        )
+        archive_workitem(db, w.id)
+        archive_workitem(db, w.id)
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.archived is True
 
     def test_archive_not_found(self, db):
         with pytest.raises(QueryError, match="not found"):
             archive_workitem(db, 999999)
+
+
+class TestUnarchiveWorkitem:
+    def test_unarchive_clears_flag_preserves_status(self, db):
+        insert_project(db, name="unarch", cn_path="/tmp/un")
+        w = insert_workitem(
+            db,
+            project_name="unarch",
+            title="Restore me",
+            content="c",
+            wi_status="active",
+        )
+        archive_workitem(db, w.id)
+        unarchive_workitem(db, w.id)
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.archived is False
+        assert found.wi_status == "active"
+
+    def test_unarchive_non_archived_is_noop(self, db):
+        insert_project(db, name="unarchnoop", cn_path="/tmp/unn")
+        w = insert_workitem(
+            db,
+            project_name="unarchnoop",
+            title="Already active",
+            content="c",
+        )
+        unarchive_workitem(db, w.id)
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.archived is False
+
+    def test_unarchive_not_found(self, db):
+        with pytest.raises(QueryError, match="not found"):
+            unarchive_workitem(db, 999999)
+
+
+class TestUpdateWorkitemFields:
+    """US7: tshirt, area, and parent updates with validation (WI 41)."""
+
+    def test_update_tshirt(self, db):
+        insert_project(db, name="tsupd", cn_path="/tmp/tsu")
+        w = insert_workitem(db, project_name="tsupd", title="t", content="c")
+        updated = update_workitem(db, w.id, wi_tshirt="L")
+        assert "tshirt" in updated
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.wi_tshirt == "L"
+
+    def test_update_invalid_tshirt_raises(self, db):
+        insert_project(db, name="tsbad", cn_path="/tmp/tsb")
+        w = insert_workitem(db, project_name="tsbad", title="t", content="c")
+        with pytest.raises(QueryError, match="Invalid t-shirt"):
+            update_workitem(db, w.id, wi_tshirt="Gigantic")
+
+    def test_update_area(self, db):
+        p = insert_project(db, name="arupd", cn_path="/tmp/aru")
+        insert_area(db, project_id=p.id, name="backend")
+        w = insert_workitem(db, project_name="arupd", title="t", content="c")
+        updated = update_workitem(db, w.id, area="backend")
+        assert "area" in updated
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.area_name == "backend"
+
+    def test_update_unknown_area_raises(self, db):
+        insert_project(db, name="arbad", cn_path="/tmp/arb")
+        w = insert_workitem(db, project_name="arbad", title="t", content="c")
+        with pytest.raises(QueryError, match="Area.*not found"):
+            update_workitem(db, w.id, area="nope")
+
+    def test_update_parent(self, db):
+        insert_project(db, name="paupd", cn_path="/tmp/pau")
+        parent = insert_workitem(db, project_name="paupd", title="p", content="c")
+        child = insert_workitem(db, project_name="paupd", title="ch", content="c")
+        updated = update_workitem(db, child.id, parent_id=parent.id)
+        assert "parent" in updated
+        found = get_workitem(db, child.id)
+        assert found is not None
+        assert found.parent_id == parent.id
+
+    def test_update_omitted_fields_unchanged(self, db):
+        insert_project(db, name="omit", cn_path="/tmp/om")
+        w = insert_workitem(
+            db,
+            project_name="omit",
+            title="keep",
+            content="c",
+            wi_tshirt="M",
+        )
+        update_workitem(db, w.id, title="changed")
+        found = get_workitem(db, w.id)
+        assert found is not None
+        assert found.title == "changed"
+        assert found.wi_tshirt == "M"
+
+    def test_self_parent_rejected(self, db):
+        insert_project(db, name="selfpar", cn_path="/tmp/sp")
+        w = insert_workitem(db, project_name="selfpar", title="t", content="c")
+        with pytest.raises(QueryError, match="own parent"):
+            update_workitem(db, w.id, parent_id=w.id)
+
+    def test_cycle_parent_rejected(self, db):
+        insert_project(db, name="cycle", cn_path="/tmp/cy")
+        a = insert_workitem(db, project_name="cycle", title="a", content="c")
+        b = insert_workitem(db, project_name="cycle", title="b", content="c")
+        update_workitem(db, b.id, parent_id=a.id)
+        with pytest.raises(QueryError, match="cycle"):
+            update_workitem(db, a.id, parent_id=b.id)
+
+    def test_unknown_parent_rejected(self, db):
+        insert_project(db, name="nopar", cn_path="/tmp/np")
+        w = insert_workitem(db, project_name="nopar", title="t", content="c")
+        with pytest.raises(QueryError, match="Parent.*not found"):
+            update_workitem(db, w.id, parent_id=999999)

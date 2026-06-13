@@ -82,7 +82,7 @@ kwi work add my-bug.md
 | project | yes | — | Project short name |
 | title | yes | — | Work item title |
 | type | no | idea | bug, task, idea, research, tweak, issue, feature, epic, story |
-| status | no | open | open, active, resolved, closed, draft, archived |
+| status | no | open | open, active, resolved, closed, draft |
 | t-shirt | no | Unknown | XS, S, M, L, XL, Huge, Unknown |
 | area | no | — | Area name |
 | sprint | no | — | Sprint label |
@@ -90,7 +90,9 @@ kwi work add my-bug.md
 
 ### `kwi work list --project <project>`
 
-List work items for a project. Archived items excluded by default.
+List work items for a project. Archived items are excluded by default. Use
+`--archived` to list **only** archived items (useful for finding an item's ID
+to un-archive).
 
 ```bash
 kwi work list --project kwi
@@ -98,6 +100,7 @@ kwi work list --project kwi --area backend
 kwi work list --project kwi --status active
 kwi work list --project kwi --status "open,active"
 kwi work list --project kwi --tshirt M
+kwi work list --project kwi --archived
 ```
 
 ### `kwi work show <id>`
@@ -117,14 +120,33 @@ Update fields on a work item. At least one option required.
 kwi work set 42 --status active
 kwi work set 42 --type bug --sprint "001-kwi-db-cli"
 kwi work set 42 --content path/to/new-content.md
+kwi work set 42 --tshirt L
+kwi work set 42 --area backend
+kwi work set 42 --parent 7
 ```
+
+The `--tshirt` value must be one of `XS, S, M, L, XL, Huge, Unknown`.
+The `--area` value must be an existing area in the item's project.
+The `--parent` value must reference an existing item and may not create a
+parent cycle (an item cannot be its own ancestor). Omitted fields are left
+unchanged.
 
 ### `kwi work archive <id>`
 
-Archive a work item (sets status to "archived").
+Archive a work item. This sets the `archived` flag to `true` and leaves the
+item's status unchanged.
 
 ```bash
 kwi work archive 42
+```
+
+### `kwi work unarchive <id>`
+
+Restore an archived work item. Clears the `archived` flag; the status is
+left unchanged.
+
+```bash
+kwi work unarchive 42
 ```
 
 ### `kwi work relate <id1> <id2> --relationship <text>`
@@ -153,8 +175,29 @@ kwi work related 1
 
 ## MCP Server Tools
 
-The `kwi-mcp` server exposes 12 tools via the Model Context Protocol.
+The `kwi-mcp` server exposes 15 tools via the Model Context Protocol.
 All tools return JSON. Errors are returned as `{"error": "message"}`.
+
+### `create_project`
+
+Create a new project.
+
+| Parameter   | Type   | Required | Description                    |
+|-------------|--------|----------|--------------------------------|
+| name        | string | yes      | Project short name             |
+| cn_path     | string | yes      | Canonical filesystem path      |
+| gh_repo     | string | no       | GitHub repo (owner/name)       |
+| description | string | no       | Project description            |
+
+### `create_area`
+
+Create a new area within a project.
+
+| Parameter   | Type   | Required | Description                      |
+|-------------|--------|----------|----------------------------------|
+| project     | string | yes      | Project short name or numeric ID |
+| name        | string | yes      | Area name                        |
+| description | string | no       | Area description                 |
 
 ### `list_projects`
 
@@ -223,7 +266,17 @@ Update one or more fields on an existing work item.
 
 ### `archive_work_item`
 
-Archive a work item (sets status to "archived").
+Archive a work item. Sets the `archived` flag to `true` and preserves the
+item's status. The serialized result includes `archived`.
+
+| Parameter | Type    | Required | Description  |
+|-----------|---------|----------|--------------|
+| id        | integer | yes      | Work item ID |
+
+### `unarchive_work_item`
+
+Restore an archived work item. Clears the `archived` flag and preserves the
+item's status.
 
 | Parameter | Type    | Required | Description  |
 |-----------|---------|----------|--------------|
@@ -276,13 +329,20 @@ the built binary directly.
 2. Click a project to see its work items in a table
 3. A collapsible "Project Details" section shows the project's short name,
    CN path, GitHub repo (if set), and description (if set)
-4. Use the multi-select filter dropdowns (area, type, status, size) above
-   the table to narrow results — each filter opens a checkbox list
-   supporting multiple selections, with "Select All" and "Clear All" actions
-5. By default, all filter values are selected except the "archived" status
-6. Click any row to open the detail view
-7. Click the ↻ button next to "Projects" to refresh the project list
-8. Click the ↻ button next to "+ New Work Item" to refresh the work item list
+4. Use the multi-select filter dropdowns (area, type, status, size, sprint)
+   above the table to narrow results — each filter opens a checkbox list
+   supporting multiple selections, with "Select All" and "Clear All" actions.
+   The sprint filter lists each distinct sprint plus an "Unassigned" bucket
+   for items with no sprint.
+5. By default, every filter value is selected except the `closed` status,
+   which is hidden on first load. Archived items are hidden regardless of
+   status. A filter whose selection differs from its default shows a small
+   dot cue on its dropdown button.
+6. Filter selections are sticky for the session — navigating to a detail
+   view and back preserves them (they are not persisted to disk).
+7. Click any row to open the detail view
+8. Click the ↻ button next to "Projects" to refresh the project list
+9. Click the ↻ button next to "+ New Work Item" to refresh the work item list
 
 ### Create Work Items
 
@@ -302,9 +362,11 @@ the built binary directly.
 ### Archive
 
 1. Open a work item's detail view
-2. Click "Archive" and confirm the prompt
-3. The item is hidden because "archived" is unchecked in the status filter by default
-4. To see archived items, open the status filter and check "archived"
+2. Click "Archive" — the item is archived immediately (no confirmation prompt)
+3. The item is hidden from the list because archived items are excluded by
+   default
+4. To restore it, open the archived item's detail view and click
+   "Un-archive"; its status is preserved throughout
 
 ### Search
 

@@ -1,7 +1,12 @@
 <script lang="ts">
   import type { Project, WorkItem } from "$lib/types";
   import { appState } from "$lib/stores.svelte";
-  import { getWorkItem, archiveWorkItem, checkConnection } from "$lib/commands";
+  import {
+    getWorkItem,
+    archiveWorkItem,
+    unarchiveWorkItem,
+    checkConnection,
+  } from "$lib/commands";
   import ProjectSelector from "$lib/components/ProjectSelector.svelte";
   import ProjectDetails from "$lib/components/ProjectDetails.svelte";
   import WorkItemList from "$lib/components/WorkItemList.svelte";
@@ -54,9 +59,18 @@
   }
 
   async function handleArchive(item: WorkItem) {
-    if (!confirm(`Archive "${item.title}"?`)) return;
     try {
       await archiveWorkItem(item.id);
+      backToList();
+      listKey++;
+    } catch (e) {
+      alert(String(e));
+    }
+  }
+
+  async function handleUnarchive(item: WorkItem) {
+    try {
+      await unarchiveWorkItem(item.id);
       backToList();
       listKey++;
     } catch (e) {
@@ -150,6 +164,7 @@
           onBack={backToList}
           onEdit={startEdit}
           onArchive={handleArchive}
+          onUnarchive={handleUnarchive}
           onNavigateToItem={navigateToItemById}
         />
       {:else}

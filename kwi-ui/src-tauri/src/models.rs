@@ -35,6 +35,7 @@ pub struct WorkItem {
     pub wi_type: String,
     pub wi_status: String,
     pub wi_tshirt: String,
+    pub archived: bool,
     pub sprint: Option<String>,
     pub title: String,
     pub content: String,
@@ -87,6 +88,7 @@ mod tests {
             wi_type: "bug".to_string(),
             wi_status: "open".to_string(),
             wi_tshirt: "M".to_string(),
+            archived: false,
             sprint: Some("2026-W12".to_string()),
             title: "Fix login".to_string(),
             content: "Login is **broken**".to_string(),
@@ -101,6 +103,7 @@ mod tests {
         assert_eq!(deserialized.wi_type, "bug");
         assert_eq!(deserialized.area_name, Some("backend".to_string()));
         assert!(deserialized.details.is_none());
+        assert!(!deserialized.archived);
     }
 
     #[test]

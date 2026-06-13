@@ -8,6 +8,7 @@
     getValidTshirtSizes,
   } from "$lib/commands";
   import MultiSelectFilter from "./MultiSelectFilter.svelte";
+  import { filterState } from "$lib/stores.svelte";
 
   let {
     projectId,
@@ -27,11 +28,35 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  // Multi-select filters
-  let selectedTypes = $state<Set<string>>(new Set());
-  let selectedStatuses = $state<Set<string>>(new Set());
-  let selectedSizes = $state<Set<string>>(new Set());
-  let selectedAreas = $state<Set<string>>(new Set());
+  // Synthetic option representing items with no sprint assigned.
+  const UNASSIGNED = "Unassigned";
+
+  // Distinct sprint option list: each non-null sprint plus "Unassigned".
+  let sprintOptions = $derived(sprintValuesOf(allItems));
+
+  function sprintValuesOf(items: WorkItem[]): string[] {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient local set
+    const distinct = new Set<string>();
+    let hasUnassigned = false;
+    for (const it of items) {
+      if (it.sprint == null) hasUnassigned = true;
+      else distinct.add(it.sprint);
+    }
+    const out = Array.from(distinct).sort();
+    if (hasUnassigned) out.push(UNASSIGNED);
+    return out;
+  }
+
+  // Default status selection: everything except `closed` (hidden by default).
+  function defaultStatuses(s: string[]): Set<string> {
+    return new Set(s.filter((v) => v !== "closed"));
+  }
+
+  function setsEqual(a: Set<string>, b: Set<string>): boolean {
+    if (a.size !== b.size) return false;
+    for (const v of a) if (!b.has(v)) return false;
+    return true;
+  }
 
   async function loadRefData() {
     const [a, t, s, ts] = await Promise.all([
@@ -45,11 +70,15 @@
     statuses = s;
     tshirtSizes = ts;
 
-    // Initialize filters to all selected, except archived status
-    selectedTypes = new Set(t);
-    selectedStatuses = new Set(s.filter((v) => v !== "archived"));
-    selectedSizes = new Set(ts);
-    selectedAreas = new Set(a.map((area) => area.name));
+    // Initialize filters once per project (sticky across remounts within a
+    // session). `closed` items are hidden by default.
+    if (filterState.projectId !== projectId) {
+      filterState.projectId = projectId;
+      filterState.types = new Set(t);
+      filterState.statuses = defaultStatuses(s);
+      filterState.sizes = new Set(ts);
+      filterState.areas = new Set(a.map((area) => area.name));
+    }
   }
 
   async function loadItems() {
@@ -63,6 +92,12 @@
         undefined,
         true,
       );
+      // Initialize the sprint filter once per project (sprints derive from the
+      // loaded items, so this happens after items arrive).
+      if (filterState.sprintsProjectId !== projectId) {
+        filterState.sprintsProjectId = projectId;
+        filterState.sprints = new Set(sprintValuesOf(allItems));
+      }
     } catch (e) {
       error = String(e);
     } finally {
@@ -70,14 +105,19 @@
     }
   }
 
-  // Client-side filtering using all four multi-select dimensions
+  // Client-side filtering across every dimension. Archived items are hidden
+  // unless the archived toggle is on.
   let filteredItems = $derived(
     allItems.filter(
       (item) =>
-        selectedTypes.has(item.wi_type) &&
-        selectedStatuses.has(item.wi_status) &&
-        selectedSizes.has(item.wi_tshirt) &&
-        (item.area_name ? selectedAreas.has(item.area_name) : true),
+        (filterState.showArchived || !item.archived) &&
+        filterState.types.has(item.wi_type) &&
+        filterState.statuses.has(item.wi_status) &&
+        filterState.sizes.has(item.wi_tshirt) &&
+        (item.area_name ? filterState.areas.has(item.area_name) : true) &&
+        (item.sprint != null
+          ? filterState.sprints.has(item.sprint)
+          : filterState.sprints.has(UNASSIGNED)),
     ),
   );
 
@@ -89,18 +129,30 @@
   });
 
   function clearFilters() {
-    selectedTypes = new Set(types);
-    selectedStatuses = new Set(statuses.filter((v) => v !== "archived"));
-    selectedSizes = new Set(tshirtSizes);
-    selectedAreas = new Set(areas.map((area) => area.name));
+    filterState.types = new Set(types);
+    filterState.statuses = defaultStatuses(statuses);
+    filterState.sizes = new Set(tshirtSizes);
+    filterState.areas = new Set(areas.map((area) => area.name));
+    filterState.sprints = new Set(sprintOptions);
   }
 
+  // Off-default cues: each filter differs from its default selection.
+  let typesModified = $derived(filterState.types.size !== types.length);
+  let statusesModified = $derived(
+    !setsEqual(filterState.statuses, defaultStatuses(statuses)),
+  );
+  let sizesModified = $derived(filterState.sizes.size !== tshirtSizes.length);
+  let areasModified = $derived(filterState.areas.size !== areas.length);
+  let sprintsModified = $derived(
+    filterState.sprints.size !== sprintOptions.length,
+  );
+
   let hasActiveFilters = $derived(
-    selectedTypes.size !== types.length ||
-      selectedStatuses.size !==
-        statuses.filter((v) => v !== "archived").length ||
-      selectedSizes.size !== tshirtSizes.length ||
-      selectedAreas.size !== areas.length,
+    typesModified ||
+      statusesModified ||
+      sizesModified ||
+      areasModified ||
+      sprintsModified,
   );
 </script>
 
@@ -110,36 +162,50 @@
       <MultiSelectFilter
         label="areas"
         options={areas.map((a) => a.name)}
-        selected={selectedAreas}
+        selected={filterState.areas}
+        modified={areasModified}
         onchange={(v) => {
-          selectedAreas = v;
+          filterState.areas = v;
         }}
       />
 
       <MultiSelectFilter
         label="types"
         options={types}
-        selected={selectedTypes}
+        selected={filterState.types}
+        modified={typesModified}
         onchange={(v) => {
-          selectedTypes = v;
+          filterState.types = v;
         }}
       />
 
       <MultiSelectFilter
         label="statuses"
         options={statuses}
-        selected={selectedStatuses}
+        selected={filterState.statuses}
+        modified={statusesModified}
         onchange={(v) => {
-          selectedStatuses = v;
+          filterState.statuses = v;
         }}
       />
 
       <MultiSelectFilter
         label="sizes"
         options={tshirtSizes}
-        selected={selectedSizes}
+        selected={filterState.sizes}
+        modified={sizesModified}
         onchange={(v) => {
-          selectedSizes = v;
+          filterState.sizes = v;
+        }}
+      />
+
+      <MultiSelectFilter
+        label="sprints"
+        options={sprintOptions}
+        selected={filterState.sprints}
+        modified={sprintsModified}
+        onchange={(v) => {
+          filterState.sprints = v;
         }}
       />
 
@@ -192,7 +258,7 @@
             <tr
               tabindex="0"
               role="button"
-              class:archived={item.wi_status === "archived"}
+              class:archived={item.archived}
               onclick={() => onSelectItem(item)}
               onkeydown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {

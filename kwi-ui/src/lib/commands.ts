@@ -79,6 +79,10 @@ export async function archiveWorkItem(id: number): Promise<WorkItem> {
   return invoke("archive_work_item", { id });
 }
 
+export async function unarchiveWorkItem(id: number): Promise<WorkItem> {
+  return invoke("unarchive_work_item", { id });
+}
+
 export async function searchWorkItems(
   query: string,
   projectId?: number,

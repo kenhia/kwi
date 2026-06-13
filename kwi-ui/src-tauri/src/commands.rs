@@ -143,6 +143,11 @@ pub async fn archive_work_item(state: State<'_, AppState>, id: i32) -> Result<Wo
 }
 
 #[tauri::command]
+pub async fn unarchive_work_item(state: State<'_, AppState>, id: i32) -> Result<WorkItem, String> {
+    queries::unarchive_work_item(pool_or_err(&state)?, id).await
+}
+
+#[tauri::command]
 pub async fn search_work_items(
     state: State<'_, AppState>,
     query: String,

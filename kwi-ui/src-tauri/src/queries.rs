@@ -72,7 +72,8 @@ pub async fn list_work_items(
     let mut query = String::from(
         "SELECT w.id, w.project_id, p.project, w.area_id, a.name, \
          t.name, s.name, w.wi_tshirt, w.sprint, w.title, w.content, \
-         w.details, w.parent_id, w.created::text, w.updated::text \
+         w.details, w.parent_id, w.created::text, w.updated::text, \
+         w.archived \
          FROM workitem w \
          JOIN project p ON w.project_id = p.id \
          JOIN workitem_type t ON w.wi_type_id = t.id \
@@ -108,7 +109,7 @@ pub async fn list_work_items(
     }
 
     if !show_archived.unwrap_or(false) {
-        query.push_str(" AND s.name != 'archived'");
+        query.push_str(" AND w.archived = false");
     }
 
     query.push_str(" ORDER BY w.id ASC");
@@ -141,6 +142,7 @@ pub async fn list_work_items(
             parent_id: r.get(12),
             created: r.get(13),
             updated: r.get(14),
+            archived: r.get(15),
         })
         .collect())
 }
@@ -154,7 +156,8 @@ pub async fn get_work_item(pool: &Pool, id: i32) -> Result<WorkItem, String> {
         .query_opt(
             "SELECT w.id, w.project_id, p.project, w.area_id, a.name, \
              t.name, s.name, w.wi_tshirt, w.sprint, w.title, w.content, \
-             w.details, w.parent_id, w.created::text, w.updated::text \
+             w.details, w.parent_id, w.created::text, w.updated::text, \
+             w.archived \
              FROM workitem w \
              JOIN project p ON w.project_id = p.id \
              JOIN workitem_type t ON w.wi_type_id = t.id \
@@ -183,6 +186,7 @@ pub async fn get_work_item(pool: &Pool, id: i32) -> Result<WorkItem, String> {
         parent_id: row.get(12),
         created: row.get(13),
         updated: row.get(14),
+        archived: row.get(15),
     })
 }
 
@@ -414,21 +418,34 @@ pub async fn archive_work_item(pool: &Pool, id: i32) -> Result<WorkItem, String>
         .map_err(|e| format!("Query error: {e}"))?
         .ok_or_else(|| format!("Work item {id} not found"))?;
 
-    // Resolve archived status_id
-    let status_row = client
-        .query_opt(
-            "SELECT id FROM workitem_status WHERE name = 'archived'",
-            &[],
+    client
+        .execute(
+            "UPDATE workitem SET archived = true, updated = NOW() WHERE id = $1",
+            &[&id],
         )
         .await
+        .map_err(|e| format!("Update error: {e}"))?;
+
+    get_work_item(pool, id).await
+}
+
+pub async fn unarchive_work_item(pool: &Pool, id: i32) -> Result<WorkItem, String> {
+    let client = pool
+        .get()
+        .await
+        .map_err(|e| format!("DB connection error: {e}"))?;
+
+    // Verify exists
+    client
+        .query_opt("SELECT id FROM workitem WHERE id = $1", &[&id])
+        .await
         .map_err(|e| format!("Query error: {e}"))?
-        .ok_or_else(|| "Status 'archived' not found in database".to_string())?;
-    let status_id: i32 = status_row.get(0);
+        .ok_or_else(|| format!("Work item {id} not found"))?;
 
     client
         .execute(
-            "UPDATE workitem SET wi_status_id = $1, updated = NOW() WHERE id = $2",
-            &[&status_id, &id],
+            "UPDATE workitem SET archived = false, updated = NOW() WHERE id = $1",
+            &[&id],
         )
         .await
         .map_err(|e| format!("Update error: {e}"))?;
@@ -450,13 +467,14 @@ pub async fn search_work_items(
     let mut sql = String::from(
         "SELECT w.id, w.project_id, p.project, w.area_id, a.name, \
          t.name, s.name, w.wi_tshirt, w.sprint, w.title, w.content, \
-         w.details, w.parent_id, w.created::text, w.updated::text \
+         w.details, w.parent_id, w.created::text, w.updated::text, \
+         w.archived \
          FROM workitem w \
          JOIN project p ON w.project_id = p.id \
          JOIN workitem_type t ON w.wi_type_id = t.id \
          JOIN workitem_status s ON w.wi_status_id = s.id \
          LEFT JOIN area a ON w.area_id = a.id \
-         WHERE s.name != 'archived' \
+         WHERE w.archived = false \
          AND (w.title ILIKE $1 OR w.content ILIKE $1)",
     );
 
@@ -498,6 +516,7 @@ pub async fn search_work_items(
             parent_id: r.get(12),
             created: r.get(13),
             updated: r.get(14),
+            archived: r.get(15),
         })
         .collect())
 }

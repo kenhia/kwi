@@ -4,11 +4,13 @@
     options,
     selected,
     onchange,
+    modified = false,
   }: {
     label: string;
     options: string[];
     selected: Set<string>;
     onchange: (updated: Set<string>) => void;
+    modified?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -70,11 +72,17 @@
   <button
     type="button"
     class="trigger"
+    class:modified
     onclick={() => (open = !open)}
     aria-haspopup="listbox"
     aria-expanded={open}
   >
     {summary()}
+    {#if modified}
+      <span class="cue" aria-label="filter modified" title="Filter modified"
+        >●</span
+      >
+    {/if}
   </button>
 
   {#if open}
@@ -123,6 +131,16 @@
   }
   .trigger:hover {
     border-color: var(--accent-color, #396cd8);
+  }
+  .trigger.modified {
+    border-color: var(--accent-color, #396cd8);
+    font-weight: 600;
+  }
+  .cue {
+    margin-left: 0.3rem;
+    color: var(--accent-color, #396cd8);
+    font-size: 0.7rem;
+    vertical-align: middle;
   }
   .dropdown {
     position: absolute;

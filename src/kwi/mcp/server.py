@@ -13,9 +13,12 @@ from kwi.queries import (
     delete_related,
     get_project,
     get_workitem,
+    insert_area,
+    insert_project,
     insert_related,
     insert_workitem,
     list_workitems,
+    unarchive_workitem,
     update_workitem,
 )
 from kwi.queries import (
@@ -67,6 +70,64 @@ def list_areas(project: str) -> str:
             return json.dumps({"error": f"Project '{project}' not found."})
         areas = query_list_areas(conn, proj.id)
     return _serialize(areas)
+
+
+@mcp.tool()
+def create_project(
+    name: str,
+    cn_path: str,
+    gh_repo: str | None = None,
+    description: str | None = None,
+) -> str:
+    """Create a new project.
+
+    Args:
+        name: Project short name (must be unique).
+        cn_path: Canonical filesystem path for the project.
+        gh_repo: Optional GitHub repository (owner/name).
+        description: Optional project description.
+    """
+    with get_connection(_db_url()) as conn:
+        try:
+            project = insert_project(
+                conn,
+                name=name,
+                cn_path=cn_path,
+                gh_repo=gh_repo,
+                description=description,
+            )
+        except Exception as e:  # noqa: BLE001 - surface DB/uniqueness errors as data
+            return json.dumps({"error": str(e)})
+    return _serialize(project)
+
+
+@mcp.tool()
+def create_area(
+    project: str,
+    name: str,
+    description: str | None = None,
+) -> str:
+    """Create a new area under a project.
+
+    Args:
+        project: Project short name or numeric ID.
+        name: Area name (must be unique within the project).
+        description: Optional area description.
+    """
+    with get_connection(_db_url()) as conn:
+        proj = get_project(conn, project)
+        if proj is None:
+            return json.dumps({"error": f"Project '{project}' not found."})
+        try:
+            area = insert_area(
+                conn,
+                project_id=proj.id,
+                name=name,
+                description=description,
+            )
+        except Exception as e:  # noqa: BLE001 - surface DB/uniqueness errors as data
+            return json.dumps({"error": str(e)})
+    return _serialize(area)
 
 
 @mcp.tool()
@@ -200,6 +261,12 @@ def update_work_item(
         fields["wi_status"] = status
     if sprint is not None:
         fields["sprint"] = sprint
+    if tshirt is not None:
+        fields["wi_tshirt"] = tshirt
+    if area is not None:
+        fields["area"] = area
+    if parent is not None:
+        fields["parent_id"] = parent
 
     with get_connection(_db_url()) as conn:
         try:
@@ -211,7 +278,7 @@ def update_work_item(
 
 @mcp.tool()
 def archive_work_item(id: int) -> str:
-    """Archive a work item (sets status to 'archived').
+    """Archive a work item (sets the archived flag; status is preserved).
 
     Args:
         id: Work item ID.
@@ -221,7 +288,24 @@ def archive_work_item(id: int) -> str:
             archive_workitem(conn, id)
         except QueryError as e:
             return json.dumps({"error": str(e)})
-    return json.dumps({"id": id, "status": "archived"})
+        wi = get_workitem(conn, id)
+    return _serialize(wi)
+
+
+@mcp.tool()
+def unarchive_work_item(id: int) -> str:
+    """Un-archive a work item (clears the archived flag; status is preserved).
+
+    Args:
+        id: Work item ID.
+    """
+    with get_connection(_db_url()) as conn:
+        try:
+            unarchive_workitem(conn, id)
+        except QueryError as e:
+            return json.dumps({"error": str(e)})
+        wi = get_workitem(conn, id)
+    return _serialize(wi)
 
 
 @mcp.tool()
